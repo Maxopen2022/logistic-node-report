@@ -103,6 +103,9 @@ h1 .thin{font-weight:400;color:var(--ink-soft);display:block}
 }
 .btn:hover{color:var(--acid);border-color:var(--acid)}
 .btn.warnb:hover{color:var(--fail);border-color:var(--fail)}
+.btn.on{color:var(--bg);background:var(--warn);border-color:var(--warn)}
+.btn.on:hover{color:var(--bg);background:var(--warn);border-color:var(--warn)}
+#adminGroup[hidden]{display:none}
 
 /* ---------- sections ---------- */
 section{padding:62px 0 0}
@@ -284,6 +287,7 @@ footer{
   .marks{flex-direction:row;margin-top:0;margin-left:auto}
   .two{grid-template-columns:1fr}
   .meta{grid-template-columns:repeat(2,1fr)}
+  .meta > div:last-child{grid-column:1 / -1}
   .wrap{padding:0 18px 80px}
   .bar{margin:0 -18px;padding:0 18px}
 }
@@ -301,13 +305,13 @@ footer{
 <header class="top">
   <p class="kicker">logistic-node.odoo.com · saas~19.4 · прогонный лист v1</p>
   <h1>Ручной<span class="thin">прогон</span></h1>
-  <p class="dek">Шестнадцать сценариев по стенду распределённой логистики. Каждый — с посевом, шагами, ожидаемым результатом и откатом. Проходятся <em>от лица обычного пользователя</em>: режим разработчика нужен только двум служебным карточкам из шестнадцати. Порядок не случаен: <em>карточки 09–12 идут подряд и не откатываются по одной</em> — это одна связка failover. Стенд в исходном состоянии, ночной крон снят с расписания.</p>
+  <p class="dek">Четырнадцать сценариев по стенду распределённой логистики. Каждый — с посевом, шагами, ожидаемым результатом и откатом. Всё проходится <em>от лица обычного пользователя</em>: режим разработчика не нужен нигде, весь результат приходит всплывающим окном на экран. Порядок не случаен: <em>карточки 09–12 идут подряд и не откатываются по одной</em> — это одна связка failover. Стенд в исходном состоянии, ночной крон снят с расписания.</p>
 
   <div class="meta">
     <div><dt>Узлов</dt><dd>8</dd></div>
     <div><dt>Правил</dt><dd>160</dd></div>
     <div><dt>Маршрутов</dt><dd>56</dd></div>
-    <div><dt>Сценариев</dt><dd class="hl">16</dd></div>
+    <div><dt>Сценариев</dt><dd class="hl">14</dd></div>
     <div><dt>Крон 70</dt><dd class="hl">снят</dd></div>
   </div>
 </header>
@@ -323,8 +327,9 @@ footer{
       <span class="n-ok">ОК <b id="cOk">0</b></span> ·
       <span class="n-no">ПРОВАЛ <b id="cNo">0</b></span> ·
       <span class="n-sk">ПРОПУСК <b id="cSk">0</b></span> ·
-      <span>ОСТАЛОСЬ <b id="cLeft">16</b></span>
+      <span>ОСТАЛОСЬ <b id="cLeft">14</b></span>
     </div>
+    <button class="btn" id="bAdmin" title="Показать две служебные карточки, требующие режима разработчика">+ админские</button>
     <button class="btn" id="bExport">Выгрузить итог</button>
     <button class="btn warnb" id="bReset">Сброс</button>
   </div>
@@ -339,7 +344,7 @@ footer{
     <article>
       <div class="pn">Условие 01</div>
       <h4>Обычный пользователь</h4>
-      <p>Режим разработчика <b>не нужен</b> для карточек 01–12, 15 и 16: кнопки в шестерёнке видны любому, у кого есть доступ к складам, а результат каждого действия приходит всплывающим окном. Он нужен только для двух служебных карточек — 13 и 14, они помечены отдельно.</p>
+      <p>Режим разработчика <b>не нужен нигде</b>. Все четырнадцать карточек проходятся правами кладовщика: кнопки живут в шестерёнке над списком правил, результат каждого действия приходит всплывающим окном на экран. Хватит доступа к складам.</p>
     </article>
     <article>
       <div class="pn">Условие 02</div>
@@ -354,7 +359,7 @@ footer{
     <article>
       <div class="pn">Условие 04</div>
       <h4>Крон не мешает</h4>
-      <p>Действие «Каскад источников: ночной прогон» снято с расписания. Не включайте его до сценария 13 — иначе он передвинет маршруты посреди вашего прогона.</p>
+      <p>Действие «Каскад источников: ночной прогон» снято с расписания и в вашем прогоне не участвует. Проверять ничего не нужно: пока оно выключено, никто не передвинет маршруты у вас за спиной.</p>
     </article>
   </div>
 </section>
@@ -362,7 +367,7 @@ footer{
 <!-- ═══════════ СЦЕНАРИИ ═══════════ -->
 <section id="cases">
   <div class="sec-head"><span class="sec-num">01 / СЦЕНАРИИ</span><h2>Прогонные карточки</h2></div>
-  <p class="lede">Отметки сохраняются в браузере — можно закрыть вкладку и вернуться. Кнопка «Выгрузить итог» кладёт в буфер текстовый отчёт со всеми отметками и заметками.</p>
+  <p class="lede">Отметки сохраняются в браузере — можно закрыть вкладку и вернуться. Кнопка «Выгрузить итог» кладёт в буфер текстовый отчёт со всеми отметками и заметками. Показан пользовательский путь; две служебные карточки под администратором лежат за кнопкой «+ админские» в верхней панели и в счёт прогона не идут.</p>
 
   <div class="group-title">A · Интерфейс</div>
 
@@ -867,12 +872,13 @@ footer{
     </div>
   </article>
 
-  <div class="group-title">E · Служебное — только с режимом разработчика</div>
-  <p class="lede" style="margin:-4px 0 22px">Эти две карточки оператору недоступны и в его работу не входят. Проходите их под администратором — или пропустите, если проверяете именно пользовательский путь. Настройки ▸ в самом низу ▸ «Активировать режим разработчика».</p>
+  <div id="adminGroup" hidden>
+  <div class="group-title">Вне прогона · служебное, под администратором</div>
+  <p class="lede" style="margin:-4px 0 22px">Двух карточек ниже в работе оператора нет — они требуют режима разработчика и в счёт прогона не идут. Открыты по вашей просьбе кнопкой «+ админские». Настройки ▸ в самом низу ▸ «Активировать режим разработчика».</p>
 
-  <article class="tc" data-tc="13">
+  <article class="tc" data-tc="A1">
     <div class="tc-rail">
-      <div class="tc-id">13</div>
+      <div class="tc-id" style="font-size:44px">A1</div>
       <div class="tc-tag" style="color:var(--warn)">Крон 70 · админ<br>4 мин</div>
       <div class="marks">
         <button data-m="ok">Норма</button>
@@ -910,9 +916,9 @@ footer{
     </div>
   </article>
 
-  <article class="tc" data-tc="14">
+  <article class="tc" data-tc="A2">
     <div class="tc-rail">
-      <div class="tc-id">14</div>
+      <div class="tc-id" style="font-size:44px">A2</div>
       <div class="tc-tag" style="color:var(--warn)">ir.logging · админ<br>3 мин</div>
       <div class="marks">
         <button data-m="ok">Норма</button>
@@ -936,7 +942,7 @@ footer{
       <div class="blk">
         <div class="blk-h exp">Ждём</div>
         <ul class="exp">
-          <li>По одной записи на каждый запуск из карточек 03–13.</li>
+          <li>По одной записи на каждый запуск из карточек 03–12 и A1.</li>
           <li>В строках failover — числа переключённых и приглушённых правил.</li>
           <li>В строках каскада — причина выбора или отказа по каждому узлу.</li>
         </ul>
@@ -949,11 +955,13 @@ footer{
     </div>
   </article>
 
-  <div class="group-title">F · Известные ограничения — подтвердить своими глазами</div>
+  </div><!-- /adminGroup -->
 
-  <article class="tc" data-tc="15">
+  <div class="group-title">E · Известные ограничения — подтвердить своими глазами</div>
+
+  <article class="tc" data-tc="13">
     <div class="tc-rail">
-      <div class="tc-id">15</div>
+      <div class="tc-id">13</div>
       <div class="tc-tag">Дробление<br>5 мин</div>
       <div class="marks">
         <button data-m="ok">Норма</button>
@@ -989,9 +997,9 @@ footer{
     </div>
   </article>
 
-  <article class="tc" data-tc="16">
+  <article class="tc" data-tc="14">
     <div class="tc-rail">
-      <div class="tc-id">16</div>
+      <div class="tc-id">14</div>
       <div class="tc-tag">Процесс 8<br>6 мин</div>
       <div class="marks">
         <button data-m="ok">Норма</button>
@@ -1126,15 +1134,30 @@ footer{
 
 <script>
 (function(){
-  var KEY = 'ln-testplan-v1';
+  var KEY = 'ln-testplan-v2';   // v1 нумеровал карточки иначе — старые отметки не переносим
   var store = {};
   try { store = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e){ store = {}; }
 
-  var cards = Array.prototype.slice.call(document.querySelectorAll('.tc'));
-  var total = cards.length;
+  var allCards = Array.prototype.slice.call(document.querySelectorAll('.tc'));
+  var adminBox = document.getElementById('adminGroup');
+  var adminBtn = document.getElementById('bAdmin');
+
+  function isAdmin(c){ return /^A/.test(c.dataset.tc); }
+  var cards = allCards;            // пользовательский набор, пересобирается в setAdmin
+  var total = 0;
 
   function save(){
     try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e){}
+  }
+
+  function setAdmin(on){
+    store._admin = !!on;
+    adminBox.hidden = !on;
+    adminBtn.classList.toggle('on', !!on);
+    adminBtn.textContent = on ? '− админские' : '+ админские';
+    cards = on ? allCards : allCards.filter(function(c){ return !isAdmin(c); });
+    total = cards.length;
+    tally();
   }
 
   function tally(){
@@ -1164,7 +1187,7 @@ footer{
     if(ta && typeof rec.note === 'string') ta.value = rec.note;
   }
 
-  cards.forEach(function(card){
+  allCards.forEach(function(card){
     var id = card.dataset.tc;
     card.querySelectorAll('.marks button').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -1184,13 +1207,16 @@ footer{
     }
     paint(card);
   });
-  tally();
+
+  setAdmin(!!store._admin);
+  adminBtn.addEventListener('click', function(){ setAdmin(!store._admin); save(); });
 
   var LABEL = { ok:'ОК', no:'ПРОВАЛ', sk:'ПРОПУСК' };
 
   document.getElementById('bExport').addEventListener('click', function(){
     var lines = ['ПРОГОННЫЙ ЛИСТ — logistic-node (saas~19.4)',
-                 'снято: ' + new Date().toLocaleString('ru-RU'), ''];
+                 'снято: ' + new Date().toLocaleString('ru-RU'),
+                 'набор: ' + (store._admin ? 'пользовательский + служебные' : 'пользовательский'), ''];
     cards.forEach(function(c){
       var id = c.dataset.tc;
       var rec = store[id] || {};
@@ -1211,12 +1237,13 @@ footer{
 
   document.getElementById('bReset').addEventListener('click', function(){
     if(!confirm('Стереть все отметки и заметки?')) return;
+    var adm = !!store._admin;
     store = {}; save();
-    cards.forEach(function(c){
+    allCards.forEach(function(c){
       var ta = c.querySelector('textarea'); if(ta) ta.value = '';
       paint(c);
     });
-    tally();
+    setAdmin(adm); save();
   });
 
   document.getElementById('stamp').textContent = 'открыт ' + new Date().toLocaleDateString('ru-RU');
