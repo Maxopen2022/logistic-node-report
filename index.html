@@ -471,7 +471,7 @@ footer{
       <tr><td class="idx">11</td><td class="what"><code>qty_to_order</code> = 0 при остатке ниже минимума</td><td class="fact">Не дефект: <code>qty_forecast</code> уже покрыт открытыми входящими. Судить по <code>qty_to_order_computed</code> и незакрытым перемещениям.</td><td class="verdict"><span class="stamp s-ok">норма</span></td></tr>
       <tr><td class="idx">12</td><td class="what">Остаток по отдельному узлу</td><td class="fact">Читается контекстом <code>warehouse_id</code>. Старый ключ <code>warehouse</code> из прошлых версий <em>молча игнорируется</em>: отдаёт остаток по всей компании — 1 920 вместо 800. Ошибки не будет, будет неверное число.</td><td class="verdict"><span class="stamp s-dev">ловушка</span></td></tr>
       <tr><td class="idx">13</td><td class="what">Ограничения <code>safe_eval</code> в серверных действиях</td><td class="fact">Присваивание атрибута запрещено: <code>wh.x_node_state = 'down'</code> падает на <code>forbidden opcode STORE_ATTR</code>. Писать только через <code>.write({...})</code>.</td><td class="verdict"><span class="stamp s-man">нюанс</span></td></tr>
-      <tr><td class="idx">14</td><td class="what">Куда пишет <code>log()</code> из действия</td><td class="fact">В <code>ir.logging</code>, а не в чаттер записи. Это и есть журнал failover: каждый прогон оставляет строку с числом переключённых правил и причинами отказа по узлам.</td><td class="verdict"><span class="stamp s-ok">плюс</span></td></tr>
+      <tr><td class="idx">14</td><td class="what">Куда пишет <code>log()</code> из действия</td><td class="fact">В <code>ir.logging</code>, а не в чаттер записи. Беда в том, что <code>ir.logging</code> живёт за режимом разработчика — оператор туда не попадёт. Поэтому действия теперь возвращают <code>display_notification</code>: результат приходит всплывающим окном прямо на экран, а в журнал пишется вторым экземпляром для разбора.</td><td class="verdict"><span class="stamp s-fix">исправлено</span></td></tr>
       <tr><td class="idx">15</td><td class="what">Studio и автоматизации</td><td class="fact"><code>web_studio</code> и <code>base_automation</code> на базе не установлены. Но <code>ir.actions.server</code> работает — в базе уже 211 действий с кодом, и ручные поля <code>x_*</code> создаются штатно.</td><td class="verdict"><span class="stamp s-ok">норма</span></td></tr>
     </tbody>
   </table>
@@ -552,6 +552,11 @@ footer{
     </article>
     <article>
       <div class="pn">Ограничение 05</div>
+      <h4>История не хранится</h4>
+      <p>Оператор видит итог во всплывающем окне, но окно живёт до первого клика. Постоянный след — только в <code>ir.logging</code>, а он за режимом разработчика и не привязан ни к складу, ни к правилу. На вопрос «кто и когда вывёл узел» настройка не отвечает.</p>
+    </article>
+    <article>
+      <div class="pn">Ограничение 06</div>
       <h4>Сливать документы больше нечем</h4>
       <p>Одна потребность распадается на пять цепочек, и собрать их обратно нельзя: <code>procurement.group</code> в 19-й версии нет, <code>group_id</code> убран и с перемещения, и с документа. Штатная замена — батчи, но это склейка на исполнении, а не единая заявка. Пока это косметика; станет проблемой, когда трудоёмкость failover будем измерять в документах.</p>
     </article>
