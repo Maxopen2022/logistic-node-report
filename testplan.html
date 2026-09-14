@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Прогонный лист — logistic-node</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;800;900&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f0c;
+  --surface:#141713;
+  --surface2:#1a1e18;
+  --line:#2b312a;
+  --line-soft:#20251f;
+  --ink:#e7e9e1;
+  --ink-soft:#9aa294;
+  --ink-faint:#5f6659;
+  --acid:#c3f53c;
+  --warn:#ffb02e;
+  --fail:#ff5a45;
+  --cool:#74b6ff;
+  --disp:'Big Shoulders Display',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--mono);font-size:14px;line-height:1.65;
+  font-weight:300;
+  background-image:
+    linear-gradient(var(--line-soft) 1px,transparent 1px),
+    linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+  background-size:64px 64px,64px 64px;
+  background-position:-1px -1px;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px 120px}
+
+/* ---------- masthead ---------- */
+header.top{
+  padding:72px 0 34px;border-bottom:2px solid var(--acid);
+  position:relative;
+}
+header.top::before{
+  content:'';position:absolute;left:0;top:44px;width:56px;height:8px;background:var(--acid);
+}
+.kicker{
+  font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--acid);font-weight:500;margin:0 0 12px;
+}
+h1{
+  font-family:var(--disp);font-weight:900;
+  font-size:clamp(56px,11vw,132px);line-height:.82;letter-spacing:-.01em;
+  margin:0 0 6px;text-transform:uppercase;
+}
+h1 .thin{font-weight:400;color:var(--ink-soft);display:block}
+.dek{
+  max-width:62ch;color:var(--ink-soft);font-size:14.5px;margin:22px 0 0;
+}
+.dek em{color:var(--ink);font-style:normal;border-bottom:1px solid var(--acid)}
+
+.meta{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:1px;background:var(--line);border:1px solid var(--line);margin-top:34px;
+}
+.meta > div{background:var(--bg);padding:13px 15px}
+.meta dt{
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);
+  margin:0 0 5px;font-weight:500;
+}
+.meta dd{margin:0;font-size:14px;color:var(--ink);font-weight:500}
+.meta dd.hl{color:var(--acid)}
+
+/* ---------- sticky bar ---------- */
+.bar{
+  position:sticky;top:0;z-index:40;background:rgba(13,15,12,.93);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  margin:0 -28px;padding:0 28px;
+}
+.bar-in{
+  max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:18px;
+  height:52px;flex-wrap:wrap;
+}
+.track{
+  flex:1;min-width:150px;height:6px;background:var(--surface2);
+  border:1px solid var(--line);display:flex;overflow:hidden;
+}
+.track i{display:block;height:100%;transition:width .35s cubic-bezier(.4,0,.2,1)}
+.track i.ok{background:var(--acid)}
+.track i.no{background:var(--fail)}
+.track i.sk{background:var(--ink-faint)}
+.tally{font-size:11.5px;letter-spacing:.1em;color:var(--ink-soft);white-space:nowrap}
+.tally b{font-weight:700}
+.tally .n-ok{color:var(--acid)}
+.tally .n-no{color:var(--fail)}
+.tally .n-sk{color:var(--ink-soft)}
+.btn{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  background:transparent;color:var(--ink-soft);border:1px solid var(--line);
+  padding:7px 13px;cursor:pointer;transition:.15s;font-weight:500;
+}
+.btn:hover{color:var(--acid);border-color:var(--acid)}
+.btn.warnb:hover{color:var(--fail);border-color:var(--fail)}
+
+/* ---------- sections ---------- */
+section{padding:62px 0 0}
+.sec-head{
+  display:flex;align-items:baseline;gap:18px;margin-bottom:8px;
+  border-bottom:1px solid var(--line);padding-bottom:10px;
+}
+.sec-num{
+  font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--acid);
+  font-weight:500;white-space:nowrap;
+}
+.sec-head h2{
+  font-family:var(--disp);font-weight:800;text-transform:uppercase;
+  font-size:clamp(30px,4.4vw,48px);line-height:1;margin:0;letter-spacing:0;
+}
+.lede{color:var(--ink-soft);max-width:74ch;margin:18px 0 30px;font-size:14px}
+.lede code,p code,li code,td code{
+  font-family:var(--mono);font-size:.88em;background:var(--surface2);
+  border:1px solid var(--line);padding:1px 5px;color:var(--acid);font-weight:400;
+}
+.lede strong,p strong{color:var(--ink);font-weight:700}
+
+/* ---------- preflight ---------- */
+.pre{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:1px;background:var(--line);border:1px solid var(--line);
+}
+.pre article{background:var(--surface);padding:20px 21px}
+.pre h4{
+  font-family:var(--disp);font-size:23px;font-weight:700;text-transform:uppercase;
+  margin:0 0 8px;line-height:1.05;
+}
+.pre p{margin:0;color:var(--ink-soft);font-size:13.2px}
+.pre .pn{
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--acid);
+  font-weight:500;margin-bottom:9px;
+}
+
+/* ---------- test cards ---------- */
+.group-title{
+  font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--ink-faint);font-weight:500;margin:46px 0 14px;
+  display:flex;align-items:center;gap:14px;
+}
+.group-title::after{content:'';flex:1;height:1px;background:var(--line)}
+
+.tc{
+  border:1px solid var(--line);background:var(--surface);margin-bottom:16px;
+  display:grid;grid-template-columns:132px 1fr;
+  transition:border-color .2s;
+}
+.tc:hover{border-color:#3b4338}
+.tc[data-state="ok"]{border-left:3px solid var(--acid)}
+.tc[data-state="no"]{border-left:3px solid var(--fail)}
+.tc[data-state="sk"]{border-left:3px solid var(--ink-faint);opacity:.62}
+
+.tc-rail{
+  border-right:1px solid var(--line);padding:18px 16px;background:var(--surface2);
+  display:flex;flex-direction:column;gap:12px;
+}
+.tc-id{
+  font-family:var(--disp);font-size:40px;font-weight:900;line-height:.85;
+  color:var(--ink);letter-spacing:-.01em;
+}
+.tc[data-state="ok"] .tc-id{color:var(--acid)}
+.tc[data-state="no"] .tc-id{color:var(--fail)}
+.tc-tag{
+  font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);
+  font-weight:500;line-height:1.4;
+}
+.marks{display:flex;flex-direction:column;gap:5px;margin-top:auto}
+.marks button{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  background:transparent;border:1px solid var(--line);color:var(--ink-faint);
+  padding:6px 8px;cursor:pointer;text-align:left;transition:.14s;font-weight:500;
+}
+.marks button:hover{border-color:var(--ink-soft);color:var(--ink-soft)}
+.marks button.on[data-m="ok"]{background:var(--acid);border-color:var(--acid);color:#0d0f0c;font-weight:700}
+.marks button.on[data-m="no"]{background:var(--fail);border-color:var(--fail);color:#0d0f0c;font-weight:700}
+.marks button.on[data-m="sk"]{background:var(--ink-faint);border-color:var(--ink-faint);color:#0d0f0c;font-weight:700}
+
+.tc-body{padding:19px 22px 20px}
+.tc-body h3{
+  font-family:var(--disp);font-size:27px;font-weight:700;text-transform:uppercase;
+  margin:0 0 3px;line-height:1.02;
+}
+.aim{color:var(--ink-soft);font-size:13.2px;margin:0 0 16px}
+
+.blk{margin-top:15px}
+.blk-h{
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;
+  color:var(--acid);margin-bottom:7px;
+}
+.blk-h.seed{color:var(--warn)}
+.blk-h.exp{color:var(--cool)}
+.blk-h.back{color:var(--ink-faint)}
+.blk p{margin:0;font-size:13.4px;color:var(--ink-soft)}
+
+ol.steps{margin:0;padding:0;list-style:none;counter-reset:s}
+ol.steps li{
+  counter-increment:s;position:relative;padding:4px 0 4px 34px;
+  font-size:13.4px;color:var(--ink-soft);
+}
+ol.steps li::before{
+  content:counter(s,decimal-leading-zero);position:absolute;left:0;top:4px;
+  font-size:10.5px;color:var(--ink-faint);font-weight:500;letter-spacing:.08em;
+}
+ol.steps li b{color:var(--ink);font-weight:500}
+
+.path{
+  font-family:var(--mono);font-size:12.4px;color:var(--ink);
+  background:var(--surface2);border:1px solid var(--line);
+  padding:7px 11px;display:inline-block;margin:2px 0;
+}
+.path span{color:var(--ink-faint);padding:0 4px}
+
+ul.exp{margin:0;padding:0;list-style:none}
+ul.exp li{
+  position:relative;padding:3px 0 3px 20px;font-size:13.4px;color:var(--ink-soft);
+}
+ul.exp li::before{
+  content:'';position:absolute;left:3px;top:12px;width:7px;height:1px;background:var(--cool);
+}
+ul.exp li b{color:var(--ink);font-weight:500}
+
+.note{
+  margin-top:16px;border-top:1px dashed var(--line);padding-top:13px;
+}
+.note label{
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);
+  display:block;margin-bottom:6px;font-weight:500;
+}
+.note textarea{
+  width:100%;background:var(--surface2);border:1px solid var(--line);color:var(--ink);
+  font-family:var(--mono);font-size:13px;padding:9px 11px;resize:vertical;min-height:42px;
+  line-height:1.55;font-weight:300;
+}
+.note textarea:focus{outline:none;border-color:var(--acid)}
+.note textarea::placeholder{color:var(--ink-faint)}
+
+.flag{
+  border-left:2px solid var(--warn);background:rgba(255,176,46,.05);
+  padding:11px 14px;margin-top:15px;font-size:13px;color:var(--ink-soft);
+}
+.flag b{color:var(--warn);font-weight:700;letter-spacing:.04em}
+
+/* ---------- tables ---------- */
+table.ref{width:100%;border-collapse:collapse;margin-top:6px;font-size:13px}
+table.ref th{
+  text-align:left;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-faint);font-weight:500;padding:9px 12px;
+  border-bottom:1px solid var(--line);background:var(--surface2);
+}
+table.ref td{
+  padding:9px 12px;border-bottom:1px solid var(--line-soft);color:var(--ink-soft);
+  vertical-align:top;
+}
+table.ref tr:hover td{background:var(--surface)}
+table.ref td.k{color:var(--ink);font-weight:500;white-space:nowrap}
+table.ref td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.good{color:var(--acid)}
+.bad{color:var(--fail)}
+.mid{color:var(--warn)}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+
+footer{
+  margin-top:80px;padding-top:22px;border-top:2px solid var(--acid);
+  font-size:11.5px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+}
+
+@media(max-width:840px){
+  .tc{grid-template-columns:1fr}
+  .tc-rail{
+    border-right:none;border-bottom:1px solid var(--line);
+    flex-direction:row;align-items:center;gap:16px;
+  }
+  .marks{flex-direction:row;margin-top:0;margin-left:auto}
+  .two{grid-template-columns:1fr}
+  .meta{grid-template-columns:repeat(2,1fr)}
+  .wrap{padding:0 18px 80px}
+  .bar{margin:0 -18px;padding:0 18px}
+}
+@media print{
+  body{background:#fff;color:#000;background-image:none}
+  .bar,.marks,.btn{display:none}
+  .tc,.pre article,table.ref th{background:#fff;border-color:#bbb}
+  h1,.sec-head h2{color:#000}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <p class="kicker">logistic-node.odoo.com · saas~19.4 · прогонный лист v1</p>
+  <h1>Ручной<span class="thin">прогон</span></h1>
+  <p class="dek">Шестнадцать сценариев по стенду распределённой логистики. Каждый — с посевом, шагами, ожидаемым результатом и откатом. Порядок не случаен: <em>карточки 09–12 идут подряд и не откатываются по одной</em> — это одна связка failover. Стенд сейчас в исходном состоянии, ночной крон снят с расписания, чтобы не двигал данные между прогонами.</p>
+
+  <div class="meta">
+    <div><dt>Узлов</dt><dd>8</dd></div>
+    <div><dt>Правил</dt><dd>160</dd></div>
+    <div><dt>Маршрутов</dt><dd>56</dd></div>
+    <div><dt>Сценариев</dt><dd class="hl">16</dd></div>
+    <div><dt>Крон 70</dt><dd class="hl">снят</dd></div>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="track">
+      <i class="ok" id="tOk" style="width:0"></i>
+      <i class="no" id="tNo" style="width:0"></i>
+      <i class="sk" id="tSk" style="width:0"></i>
+    </div>
+    <div class="tally">
+      <span class="n-ok">ОК <b id="cOk">0</b></span> ·
+      <span class="n-no">ПРОВАЛ <b id="cNo">0</b></span> ·
+      <span class="n-sk">ПРОПУСК <b id="cSk">0</b></span> ·
+      <span>ОСТАЛОСЬ <b id="cLeft">16</b></span>
+    </div>
+    <button class="btn" id="bExport">Выгрузить итог</button>
+    <button class="btn warnb" id="bReset">Сброс</button>
+  </div>
+</div>
+
+<!-- ═══════════ ДО СТАРТА ═══════════ -->
+<section id="pre">
+  <div class="sec-head"><span class="sec-num">00 / ДО СТАРТА</span><h2>Что проверить прежде всего</h2></div>
+  <p class="lede">Четыре условия. Если хоть одно не выполнено, половина сценариев даст ложный результат — и вы будете чинить не то.</p>
+
+  <div class="pre">
+    <article>
+      <div class="pn">Условие 01</div>
+      <h4>Режим разработчика</h4>
+      <p>Настройки ▸ в самом низу ▸ «Активировать режим разработчика». Без него не видно ни меню технических действий, ни планировщиков, ни журнала.</p>
+    </article>
+    <article>
+      <div class="pn">Условие 02</div>
+      <h4>Правила в авто</h4>
+      <p>Все 160 правил должны быть в <code>trigger = Автоматически</code>. После сценариев 09–11 проверьте это ещё раз: failover намеренно переводит 20 правил в ручной режим.</p>
+    </article>
+    <article>
+      <div class="pn">Условие 03</div>
+      <h4>Отпечаток исходного</h4>
+      <p>Распределение маршрутов до начала: <b>33/40/47</b> — по 20, <b>55/69</b> — по 20, <b>62</b> — 19, <b>65</b> и <b>19</b> — по 1, <b>Buy</b> — 39. Сумма 160. К этому же состоянию стенд обязан вернуться в конце.</p>
+    </article>
+    <article>
+      <div class="pn">Условие 04</div>
+      <h4>Крон не мешает</h4>
+      <p>Действие «Каскад источников: ночной прогон» снято с расписания. Не включайте его до сценария 13 — иначе он передвинет маршруты посреди вашего прогона.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ═══════════ СЦЕНАРИИ ═══════════ -->
+<section id="cases">
+  <div class="sec-head"><span class="sec-num">01 / СЦЕНАРИИ</span><h2>Прогонные карточки</h2></div>
+  <p class="lede">Отметки сохраняются в браузере — можно закрыть вкладку и вернуться. Кнопка «Выгрузить итог» кладёт в буфер текстовый отчёт со всеми отметками и заметками.</p>
+
+  <div class="group-title">A · Интерфейс</div>
+
+  <article class="tc" data-tc="01">
+    <div class="tc-rail">
+      <div class="tc-id">01</div>
+      <div class="tc-tag">Представление 2770<br>1 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Состояние узла видно на складе</h3>
+      <p class="aim">Поля существовали и раньше, но оператор их не видел — значит, их как бы и не было. Проверяем, что наследованное представление легло на форму.</p>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li><span class="path">Инвентарь<span>▸</span>Настройки<span>▸</span>Склады</span></li>
+          <li>Открыть <b>WH-A Центральный склад</b>.</li>
+          <li>Найти блок сразу после поля «Контрагент».</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Три поля: <b>Состояние узла</b> = «Доступен», <b>Резервный узел</b> = WH-B, <b>Каскад источников</b> = <code>WHB</code>.</li>
+          <li>На складе <b>S1 Магазин Подол</b> те же поля, но резервный узел пуст, а каскад = <code>WHA,WHB</code>.</li>
+        </ul>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h back">Откат</div>
+        <p>Не требуется — только чтение.</p>
+      </div>
+
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="02">
+    <div class="tc-rail">
+      <div class="tc-id">02</div>
+      <div class="tc-tag">Представление 2771<br>2 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Служебные колонки в списке правил</h3>
+      <p class="aim">Две колонки памяти спрятаны под галочку. Они понадобятся в сценариях 09–11, чтобы увидеть, что именно натворило переключение.</p>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li><span class="path">Инвентарь<span>▸</span>Операции<span>▸</span>Пополнение</span> <span style="color:var(--ink-faint)">(Replenishment)</span></li>
+          <li>Нажать иконку настройки колонок справа в шапке таблицы.</li>
+          <li>В выпадающем списке найти две новые позиции.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>В списке опциональных колонок есть <b>Маршрут до failover</b> и <b>Приглушено failover</b>.</li>
+          <li>После включения обе пусты у всех 160 строк — это и есть признак чистого исходного состояния.</li>
+        </ul>
+      </div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Колонки можно оставить включёнными — они пригодятся дальше.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <div class="group-title">B · Каскад источников</div>
+
+  <article class="tc" data-tc="03">
+    <div class="tc-rail">
+      <div class="tc-id">03</div>
+      <div class="tc-tag">Действие 935<br>5 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Первый источник справляется</h3>
+      <p class="aim">Скучный случай, и именно поэтому важный: каскад не должен суетиться, когда основной узел покрывает потребность.</p>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p>Правило <b>S1 Магазин Подол / [UNV-01] Кондиціонер 12k BTU</b>. Записать исходные значения: <code>мин 4</code>, <code>макс 8</code>, маршрут <code>S1 ← WH-A</code>. Выставить <code>мин 20</code>, <code>макс 25</code>. Потребность станет <b>19</b> (25 − 6 в наличии).</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Отметить строку галочкой слева.</li>
+          <li><span class="path">Шестерёнка действий<span>▸</span>Выбрать источник по каскаду</span></li>
+          <li>Обновить страницу и посмотреть на маршрут.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Маршрут <b>не изменился</b>: остался <code>S1 ← WH-A</code>.</li>
+          <li>Свободного на WH-A по UNV-01 ровно <b>27</b> — потребности 19 хватает, до WH-B очередь не дошла.</li>
+        </ul>
+      </div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Вернуть <code>мин 4</code>, <code>макс 8</code>.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="04">
+    <div class="tc-rail">
+      <div class="tc-id">04</div>
+      <div class="tc-tag">Действие 935<br>5 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Первый не тянет — берём второй</h3>
+      <p class="aim">Главный сценарий каскада. Потребность подобрана так, чтобы попасть в узкое окно между свободным остатком WH-A и WH-B.</p>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p>То же правило <b>S1 / UNV-01</b>. Выставить <code>мин 30</code>, <code>макс 35</code> — потребность станет <b>29</b>. На WH-A свободно <b>27</b>, на WH-B <b>30</b>. Окно, в котором первый источник обязан отвалиться, а второй — подхватить.</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Отметить строку, запустить <b>Выбрать источник по каскаду</b>.</li>
+          <li>Обновить страницу.</li>
+          <li>Открыть журнал: <span class="path">Настройки<span>▸</span>Технические<span>▸</span>Журналирование</span></li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Маршрут переключился на <b>S1 ← WH-B</b>.</li>
+          <li>В журнале строка вида <code>S1 / UNV-01: WHA не хватает (27 &lt; 29) → WHB</code>.</li>
+          <li>Колонка «Маршрут до failover» осталась <b>пустой</b> — каскад не failover, свою память он не ведёт.</li>
+        </ul>
+      </div>
+
+      <div class="flag"><b>Внимание</b> — вот здесь легко обмануться: каскад не запоминает прежний маршрут. Вернуть <code>S1 ← WH-A</code> придётся руками, и это честное ограничение, а не дефект.</div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Маршрут вручную на <code>S1 ← WH-A</code>, затем <code>мин 4</code>, <code>макс 8</code>.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="05">
+    <div class="tc-rail">
+      <div class="tc-id">05</div>
+      <div class="tc-tag">Регресс<br>4 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Каскад не трогает закупку</h3>
+      <p class="aim">Проверка на тот самый инцидент: в первом прогоне крон подменил хабам закупочный маршрут межскладским, и хабы перестали закупать у поставщика. Посев не нужен — дефициты на хабах уже есть.</p>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p>Не требуется. Прямо сейчас <b>11 правил</b> с ненулевой потребностью, и все они на хабах с маршрутом <code>Buy</code>: WH-A / UNV-01 и десять правил WH-B (ESP-01…05 и UNV-01…05).</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>В списке пополнения отфильтровать по складу <b>WH-B Резервный склад</b>.</li>
+          <li>Отметить все десять строк ESP и UNV с ненулевым «К заказу».</li>
+          <li>Запустить <b>Выбрать источник по каскаду</b>.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Маршрут у всех десяти остался <b>Buy</b>.</li>
+          <li>В журнале по строке на каждое: <code>пропущено — правило не межузловое (Buy)</code>.</li>
+          <li>Итог по маршрутам не сдвинулся: <b>Buy по-прежнему 39</b>.</li>
+        </ul>
+      </div>
+
+      <div class="flag"><b>Если провал</b> — это регресс той самой правки. Смотреть проверку <code>op.route_id.supplier_wh_id</code> в действиях 935 и 936.</div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Не требуется, если ждём совпало. Если маршруты поехали — вернуть все затронутые правила на <code>Buy</code>.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="06">
+    <div class="tc-rail">
+      <div class="tc-id">06</div>
+      <div class="tc-tag">Состояние «ограничен»<br>6 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Ограниченный узел пропускается</h3>
+      <p class="aim">Среднее состояние должно что-то значить. Узел с остатком, но «ограничен», не выбирается источником — хотя товара у него хватает.</p>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p>Двойной. Первое: <b>WH-A</b> ▸ Состояние узла = <b>Ограничен</b>. Второе: правило <b>S1 / UNV-01</b> ▸ <code>мин 20</code>, <code>макс 25</code> (потребность 19 — WH-A такое покрыл бы легко).</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Отметить строку, запустить <b>Выбрать источник по каскаду</b>.</li>
+          <li>Посмотреть маршрут и журнал.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Маршрут ушёл на <b>S1 ← WH-B</b>, хотя остатка WH-A было достаточно.</li>
+          <li>В журнале: <code>WHA: не в строю (limited)</code>.</li>
+          <li>Ключевое: <b>остальные 19 правил S1 не двинулись</b>. «Ограничен» не срывает с места уже назначенное — он только не даёт выбрать себя заново.</li>
+        </ul>
+      </div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>WH-A ▸ Состояние = <b>Доступен</b>. Маршрут правила вручную на <code>S1 ← WH-A</code>. Затем <code>мин 4</code>, <code>макс 8</code>.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <div class="group-title">C · Латеральная переброска</div>
+
+  <article class="tc" data-tc="07">
+    <div class="tc-rail">
+      <div class="tc-id">07</div>
+      <div class="tc-tag">Действия 936 / 937<br>6 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Донор находится среди магазинов</h3>
+      <p class="aim">Переброска «магазин → магазин» мимо хабов. Донор считается по излишку сверх собственного максимума, а не по абсолютному остатку.</p>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p>Правило <b>S1 / [FST-01] Смартфон 256GB</b>. Исходно <code>мин 6</code>, <code>макс 15</code>, в наличии 15. Выставить <code>мин 20</code>, <code>макс 25</code> — потребность <b>10</b>. У S6 Днепр лежит 60 при собственном максимуме 15, то есть излишек <b>45</b>; у всех остальных магазинов ровно по 15 — излишек ноль.</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Отметить строку, запустить <b>Латеральная переброска: найти донора</b>.</li>
+          <li>Проверить маршрут и журнал.</li>
+          <li>Затем запустить <b>Отменить латерал (вернуть маршрут)</b> на той же строке.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Маршрут стал <b>S1 ← S6 Магазин Днепр</b>.</li>
+          <li>Хабы в кандидаты <b>не попали</b>, хотя остатка у них вдоволь: они перечислены в каскаде S1 и из латерали исключаются намеренно.</li>
+          <li>В колонке «Маршрут до латерала» записан прежний <code>S1 ← WH-A</code>.</li>
+          <li>После отмены маршрут вернулся сам, колонка памяти очистилась.</li>
+        </ul>
+      </div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Действие 937 возвращает маршрут. Останется вернуть <code>мин 6</code>, <code>макс 15</code>.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="08">
+    <div class="tc-rail">
+      <div class="tc-id">08</div>
+      <div class="tc-tag">Отказ<br>4 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Донора нет — и он молчит</h3>
+      <p class="aim">Отрицательный сценарий. Действие обязано отказаться внятно, а не переставить маршрут наугад.</p>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p>Правило <b>S1 / UNV-01</b>, <code>мин 30</code>, <code>макс 35</code> — потребность <b>29</b>. По UNV-01 во всех магазинах ровно по 6 штук при максимуме 8: излишка нет ни у кого.</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Отметить строку, запустить <b>Латеральная переброска: найти донора</b>.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Маршрут <b>не изменился</b>.</li>
+          <li>В журнале перечислены отсеянные кандидаты с нулевым излишком.</li>
+          <li>Здесь же видно <b>ограничение «один донор на правило»</b>: даже если бы у двух магазинов нашлось по 15, действие не сложило бы 15 + 14. Это не баг, это потолок настроечного решения.</li>
+        </ul>
+      </div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Вернуть <code>мин 4</code>, <code>макс 8</code>.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <div class="group-title">D · Failover — связка из четырёх карточек</div>
+
+  <article class="tc" data-tc="09">
+    <div class="tc-rail">
+      <div class="tc-id">09</div>
+      <div class="tc-tag">Действие 933<br>8 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Вывести WH-A из сети</h3>
+      <p class="aim">Центральный сценарий стенда. Одно действие вместо примерно семидесяти ручных правок в шести разных меню.</p>
+
+      <div class="flag"><b>Не откатывать</b> — карточки 09, 10, 11 и 12 образуют одну связку. Возврат делается в карточке 11.</div>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p>Не требуется. Перед запуском зафиксируйте время — понадобится, чтобы честно сравнить с ручной альтернативой.</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li><span class="path">Инвентарь<span>▸</span>Настройки<span>▸</span>Склады</span></li>
+          <li>Открыть <b>WH-A</b>, в шестерёнке действий выбрать <b>Вывести узел из сети (failover)</b>.</li>
+          <li>Перейти в пополнение и сгруппировать список по маршруту.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Состояние WH-A стало <b>Выведен</b>.</li>
+          <li>Маршруты <b>S1 ← WH-A</b>, <b>S2 ← WH-A</b>, <b>S3 ← WH-A</b> опустели: было по 20, стало 0.</li>
+          <li>Соответствующие маршруты от WH-B набрали <b>по 20</b> каждый — всего 60 переключений.</li>
+          <li>Двадцать собственных правил WH-A ушли в <code>trigger = Вручную</code>, колонка «Приглушено failover» отмечена. Мёртвый склад больше не заказывает себе товар.</li>
+          <li>Колонка «Маршрут до failover» заполнена у всех 60 переключённых.</li>
+          <li>В журнале одна сводная строка с числом переключённых и приглушённых.</li>
+        </ul>
+      </div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Отложен до карточки 11.</p></div>
+      <div class="note"><label>Заметка · сколько заняло</label><textarea placeholder="время, число кликов, что бросилось в глаза"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="10">
+    <div class="tc-rail">
+      <div class="tc-id">10</div>
+      <div class="tc-tag">Защита<br>2 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Сеть нельзя обезглавить</h3>
+      <p class="aim">WH-A уже выведен. Попытка вывести и WH-B оставила бы сеть без обоих хабов — действие обязано отказать.</p>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p>Состояние из карточки 09: WH-A выведен, WH-B доступен и указан резервом для WH-A. Резерв самого WH-B — это WH-A.</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Открыть <b>WH-B</b>, запустить <b>Вывести узел из сети (failover)</b>.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Красное окно с текстом вида <b>«Резервный узел WHA сам не в строю (состояние: down)»</b>.</li>
+          <li>Состояние WH-B не изменилось, ни одно правило не тронуто.</li>
+        </ul>
+      </div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Не требуется — действие ничего не записало.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="точный текст отказа"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="11">
+    <div class="tc-rail">
+      <div class="tc-id">11</div>
+      <div class="tc-tag">Действие 934<br>6 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Вернуть WH-A в сеть</h3>
+      <p class="aim">Возврат должен идти строго по запомненным маршрутам, а не по догадке «наверное, было от WH-A». Разница видна на S3: одно правило там сидит на межскладском маршруте изначально.</p>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Открыть <b>WH-A</b>, запустить <b>Вернуть узел в сеть</b>.</li>
+          <li>Сгруппировать пополнение по маршруту и сверить с отпечатком из условия 03.</li>
+          <li>Включить обе служебные колонки и проверить, что они пусты.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Состояние WH-A снова <b>Доступен</b>.</li>
+          <li>Распределение маршрутов <b>в точности</b> как в условии 03: по 20 на 33/40/47, Buy — 39, сумма 160.</li>
+          <li>Двадцать собственных правил WH-A вернулись в <code>Автоматически</code>.</li>
+          <li>Обе колонки памяти <b>пусты у всех 160 строк</b> — ни одного осиротевшего значения.</li>
+        </ul>
+      </div>
+
+      <div class="flag"><b>Главный критерий</b> — не «вернулось похоже», а «вернулось ровно». Любая лишняя единица в распределении означает, что память маршрутов где-то потерялась.</div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Это и есть откат связки 09–11.</p></div>
+      <div class="note"><label>Заметка · сколько заняло</label><textarea placeholder="совпало ли распределение"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="12">
+    <div class="tc-rail">
+      <div class="tc-id">12</div>
+      <div class="tc-tag">Защита<br>3 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Резерв «ограничен» — тоже не резерв</h3>
+      <p class="aim">Отказ должен срабатывать не только на выведенном резерве, но и на ограниченном. Иначе среднее состояние окажется декорацией.</p>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p><b>WH-B</b> ▸ Состояние узла = <b>Ограничен</b>. Оба узла в остальном исходные.</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Открыть <b>WH-A</b>, запустить <b>Вывести узел из сети (failover)</b>.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Отказ с текстом про состояние <b>limited</b>, ни одно правило не переключено.</li>
+          <li>WH-A остался <b>Доступен</b>.</li>
+        </ul>
+      </div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>WH-B ▸ Состояние = <b>Доступен</b>.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="точный текст отказа"></textarea></div>
+    </div>
+  </article>
+
+  <div class="group-title">E · Служебное</div>
+
+  <article class="tc" data-tc="13">
+    <div class="tc-rail">
+      <div class="tc-id">13</div>
+      <div class="tc-tag">Крон 70<br>4 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Ночной прогон вручную</h3>
+      <p class="aim">Крон снят с расписания, но код на месте. Проверяем, что он делает ровно то же, что ручной запуск каскада, и что хабы для него неприкосновенны.</p>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li><span class="path">Настройки<span>▸</span>Технические<span>▸</span>Автоматизация<span>▸</span>Запланированные действия</span></li>
+          <li>В фильтрах включить <b>Архивные</b> — действие снято с расписания и в обычном списке не показывается.</li>
+          <li>Открыть <b>«Каскад источников: ночной прогон»</b> и нажать <b>Запустить вручную</b>.</li>
+          <li>Проверить журнал.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Все <b>11</b> дефицитных правил обработаны и <b>все пропущены</b> как закупочные.</li>
+          <li>Ни один маршрут не сдвинулся.</li>
+          <li>В журнале строки вида <code>пропущено — правило не межузловое (Buy)</code>.</li>
+        </ul>
+      </div>
+
+      <div class="flag"><b>Оставьте действие снятым с расписания.</b> Если включить, оно тронет стенд в 02:00 и следующий замер сравнивать будет не с чем.</div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Проверить, что галочка «Активно» осталась снятой.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="14">
+    <div class="tc-rail">
+      <div class="tc-id">14</div>
+      <div class="tc-tag">ir.logging<br>3 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Журнал как след решений</h3>
+      <p class="aim">У настроечного решения нет чаттера — вся история живёт в техническом журнале. Проверяем, что по нему можно восстановить ход событий задним числом.</p>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li><span class="path">Настройки<span>▸</span>Технические<span>▸</span>Журналирование</span></li>
+          <li>Отсортировать по дате убыванием.</li>
+          <li>Найти записи от сегодняшних прогонов.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>По одной записи на каждый запуск из карточек 03–13.</li>
+          <li>В строках failover — числа переключённых и приглушённых правил.</li>
+          <li>В строках каскада — причина выбора или отказа по каждому узлу.</li>
+        </ul>
+      </div>
+
+      <div class="flag"><b>Ограничение</b> — журнал не привязан к записи склада или правила: в чаттере WH-A вы этих строк не найдёте. Для приёмки этого мало, для отладки достаточно.</div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Не требуется.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+
+  <div class="group-title">F · Известные ограничения — подтвердить своими глазами</div>
+
+  <article class="tc" data-tc="15">
+    <div class="tc-rail">
+      <div class="tc-id">15</div>
+      <div class="tc-tag">Дробление<br>5 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Одна потребность — пять документов</h3>
+      <p class="aim">Не дефект количества, а дефект формы. Количества верные; неудобен способ, которым Odoo 19 их оформляет.</p>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Открыть товар <b>[UNV-01] Кондиціонер 12k BTU</b>, отчёт <b>Прогноз</b>, склад <b>S3 Магазин Троещина</b>.</li>
+          <li>Раскрыть входящие перемещения и сверить их источник.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Несколько отдельных документов с <b>одним и тем же источником</b> <code>OP/00123</code>.</li>
+          <li>Арифметика сходится: <b>0 в наличии + 31 входящих − 24 исходящих = прогноз 7</b>. Переордера нет.</li>
+          <li>«К заказу» = 0 при остатке ниже минимума — тоже норма: прогноз уже покрыт входящими.</li>
+        </ul>
+      </div>
+
+      <div class="flag"><b>Почему так</b> — модели <code>procurement.group</code> в saas~19.4 больше нет, поле <code>group_id</code> убрано и с перемещения, и с документа. Склеивать заявки одного правила в 19-й нечем; штатная замена — батчи, но это склейка на исполнении, а не единая заявка.</div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Не требуется — только чтение.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="сколько документов насчитали"></textarea></div>
+    </div>
+  </article>
+
+  <article class="tc" data-tc="16">
+    <div class="tc-rail">
+      <div class="tc-id">16</div>
+      <div class="tc-tag">Процесс 8<br>6 мин</div>
+      <div class="marks">
+        <button data-m="ok">Норма</button>
+        <button data-m="no">Провал</button>
+        <button data-m="sk">Пропуск</button>
+      </div>
+    </div>
+    <div class="tc-body">
+      <h3>Документы не переезжают за складом</h3>
+      <p class="aim">Единственный процесс, который настройкой не закрывается вообще. Убедиться в этом руками стоит до того, как закладывать его в оценку.</p>
+
+      <div class="blk">
+        <div class="blk-h seed">Посев</div>
+        <p>Любой из подтверждённых заказов <b>S00001…S00005</b> — все пять оформлены на WH-A.</p>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h">Шаги</div>
+        <ol class="steps">
+          <li>Открыть заказ, в «Прочей информации» сменить склад доставки на <b>WH-B</b>.</li>
+          <li>Перейти по кнопке к связанной отгрузке.</li>
+          <li>Посмотреть, с какой локации она уходит.</li>
+        </ol>
+      </div>
+
+      <div class="blk">
+        <div class="blk-h exp">Ждём</div>
+        <ul class="exp">
+          <li>Поле склада в заказе <b>сменилось</b> без ошибки.</li>
+          <li>Отгрузка при этом <b>осталась на WH-A</b> — ни тип операции, ни локация не переехали.</li>
+          <li>Вывод: при выводе узла из сети уже созданные документы придётся отменять и пересоздавать вручную. Это код в <code>stock</code>, настройкой не лечится.</li>
+        </ul>
+      </div>
+
+      <div class="blk"><div class="blk-h back">Откат</div><p>Вернуть в заказе склад <b>WH-A</b>. Проверить, что отгрузка осталась прежней и ничего не задвоилось.</p></div>
+      <div class="note"><label>Заметка</label><textarea placeholder="что увидели"></textarea></div>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════ СПРАВОЧНИК ═══════════ -->
+<section id="ref">
+  <div class="sec-head"><span class="sec-num">02 / СПРАВОЧНИК</span><h2>Цифры под рукой</h2></div>
+  <p class="lede">Значения сняты со стенда перед прогоном. Если они разошлись с тем, что вы видите — стенд уже кто-то двигал, и сценарии с подобранными окнами потребности перестанут работать.</p>
+
+  <div class="two">
+    <div>
+      <div class="group-title">Узлы</div>
+      <table class="ref">
+        <thead><tr><th>Код</th><th>Резерв</th><th>Каскад</th></tr></thead>
+        <tbody>
+          <tr><td class="k">WHA</td><td>WH-B</td><td><code>WHB</code></td></tr>
+          <tr><td class="k">WHB</td><td>WH-A</td><td><code>WHA</code></td></tr>
+          <tr><td class="k">S1 Подол</td><td>—</td><td><code>WHA,WHB</code></td></tr>
+          <tr><td class="k">S2 Оболонь</td><td>—</td><td><code>WHA,WHB</code></td></tr>
+          <tr><td class="k">S3 Троещина</td><td>—</td><td><code>WHA,WHB</code></td></tr>
+          <tr><td class="k">S4 Львов</td><td>—</td><td><code>WHB,WHA</code></td></tr>
+          <tr><td class="k">S5 Одесса</td><td>—</td><td><code>WHB,WHA</code></td></tr>
+          <tr><td class="k">S6 Днепр</td><td>—</td><td><code>WHB,WHA</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <div class="group-title">Свободный остаток на хабах</div>
+      <table class="ref">
+        <thead><tr><th>SKU</th><th>WH-A своб.</th><th>WH-B своб.</th></tr></thead>
+        <tbody>
+          <tr><td class="k">UNV-01</td><td class="num mid">27 <span style="color:var(--ink-faint)">(из 52)</span></td><td class="num">30</td></tr>
+          <tr><td class="k">ESP-01</td><td class="num">34</td><td class="num">20</td></tr>
+          <tr><td class="k">ESP-02</td><td class="num">40</td><td class="num">20</td></tr>
+          <tr><td class="k">ESP-05</td><td class="num">38</td><td class="num">20</td></tr>
+          <tr><td class="k">FST-01</td><td class="num">105</td><td class="num">60</td></tr>
+          <tr><td class="k">FST-03</td><td class="num">120</td><td class="num bad">0</td></tr>
+          <tr><td class="k">UNV-04</td><td class="num">60</td><td class="num">30</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12.4px;color:var(--ink-faint);margin-top:10px">По UNV-01 на WH-A лежит 52, но свободно 27 — остальное зарезервировано. Каскад считает по свободному; это и делает возможным сценарий 04.</p>
+    </div>
+  </div>
+
+  <div class="group-title">Объекты, созданные настройкой</div>
+  <table class="ref">
+    <thead><tr><th>ID</th><th>Тип</th><th>Название</th><th>Где искать</th></tr></thead>
+    <tbody>
+      <tr><td class="k">19577</td><td>поле</td><td><code>stock.warehouse.x_node_state</code></td><td>Форма склада</td></tr>
+      <tr><td class="k">19578</td><td>поле</td><td><code>stock.warehouse.x_failover_to</code></td><td>Форма склада</td></tr>
+      <tr><td class="k">19579</td><td>поле</td><td><code>stock.warehouse.x_source_priority</code></td><td>Форма склада</td></tr>
+      <tr><td class="k">19580</td><td>поле</td><td><code>…orderpoint.x_route_before_failover</code></td><td>Колонка в пополнении</td></tr>
+      <tr><td class="k">19585</td><td>поле</td><td><code>…orderpoint.x_route_before_lateral</code></td><td>Колонка в пополнении</td></tr>
+      <tr><td class="k">19587</td><td>поле</td><td><code>…orderpoint.x_muted_by_failover</code></td><td>Колонка в пополнении</td></tr>
+      <tr><td class="k">2770</td><td>вид</td><td>Форма склада: блок состояния</td><td>Технические ▸ Представления</td></tr>
+      <tr><td class="k">2771</td><td>вид</td><td>Список правил: две колонки</td><td>Технические ▸ Представления</td></tr>
+      <tr><td class="k">933</td><td>действие</td><td>Вывести узел из сети (failover)</td><td>Шестерёнка на складе</td></tr>
+      <tr><td class="k">934</td><td>действие</td><td>Вернуть узел в сеть</td><td>Шестерёнка на складе</td></tr>
+      <tr><td class="k">935</td><td>действие</td><td>Выбрать источник по каскаду</td><td>Шестерёнка в пополнении</td></tr>
+      <tr><td class="k">936</td><td>действие</td><td>Латеральная переброска: найти донора</td><td>Шестерёнка в пополнении</td></tr>
+      <tr><td class="k">937</td><td>действие</td><td>Отменить латерал (вернуть маршрут)</td><td>Шестерёнка в пополнении</td></tr>
+      <tr><td class="k">70</td><td>крон</td><td>Каскад источников: ночной прогон</td><td>Запланированные ▸ Архивные</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════ ВОЗВРАТ ═══════════ -->
+<section id="restore">
+  <div class="sec-head"><span class="sec-num">03 / ВОЗВРАТ</span><h2>Стенд после прогона</h2></div>
+  <p class="lede">Семь проверок. Пока все семь не сошлись, стенд считать исходным нельзя — и следующий замер сравнивать будет не с чем.</p>
+
+  <table class="ref">
+    <thead><tr><th style="width:40px">#</th><th>Что сверяем</th><th>Норма</th></tr></thead>
+    <tbody>
+      <tr><td class="k">1</td><td>Распределение по маршрутам в пополнении</td><td>33/40/47 — по 20 · 55/69 — по 20 · 62 — 19 · 65 и 19 — по 1 · Buy — 39</td></tr>
+      <tr><td class="k">2</td><td>Всего правил</td><td class="good">160</td></tr>
+      <tr><td class="k">3</td><td>Правил в <code>trigger = Автоматически</code></td><td class="good">160, ни одного «Вручную»</td></tr>
+      <tr><td class="k">4</td><td>Состояние всех восьми узлов</td><td class="good">Доступен</td></tr>
+      <tr><td class="k">5</td><td>Колонки «Маршрут до failover» и «до латерала»</td><td class="good">пусты у всех строк</td></tr>
+      <tr><td class="k">6</td><td>Колонка «Приглушено failover»</td><td class="good">снята у всех строк</td></tr>
+      <tr><td class="k">7</td><td>Мин/макс у правил S1 / UNV-01 и S1 / FST-01</td><td>4 и 8 · 6 и 15</td></tr>
+    </tbody>
+  </table>
+
+  <div class="flag" style="margin-top:22px"><b>Если что-то не сошлось</b> — не чините вслепую. Запишите расхождение в заметку к последней карточке, которую запускали: по журналу восстанавливается, какое именно действие оставило хвост.</div>
+</section>
+
+<footer>
+  <span>logistic-node · saas~19.4 · прогонный лист</span>
+  <span><a href="index.html" style="color:var(--acid);text-decoration:none;border-bottom:1px solid var(--acid)">← Отчёт по стенду</a></span>
+  <span id="stamp"></span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var KEY = 'ln-testplan-v1';
+  var store = {};
+  try { store = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e){ store = {}; }
+
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.tc'));
+  var total = cards.length;
+
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e){}
+  }
+
+  function tally(){
+    var ok=0,no=0,sk=0;
+    cards.forEach(function(c){
+      var s = (store[c.dataset.tc]||{}).state;
+      if(s==='ok') ok++; else if(s==='no') no++; else if(s==='sk') sk++;
+    });
+    document.getElementById('cOk').textContent = ok;
+    document.getElementById('cNo').textContent = no;
+    document.getElementById('cSk').textContent = sk;
+    document.getElementById('cLeft').textContent = total - ok - no - sk;
+    document.getElementById('tOk').style.width = (ok/total*100)+'%';
+    document.getElementById('tNo').style.width = (no/total*100)+'%';
+    document.getElementById('tSk').style.width = (sk/total*100)+'%';
+  }
+
+  function paint(card){
+    var id = card.dataset.tc;
+    var rec = store[id] || {};
+    if(rec.state){ card.setAttribute('data-state', rec.state); }
+    else { card.removeAttribute('data-state'); }
+    card.querySelectorAll('.marks button').forEach(function(b){
+      b.classList.toggle('on', b.dataset.m === rec.state);
+    });
+    var ta = card.querySelector('textarea');
+    if(ta && typeof rec.note === 'string') ta.value = rec.note;
+  }
+
+  cards.forEach(function(card){
+    var id = card.dataset.tc;
+    card.querySelectorAll('.marks button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var rec = store[id] || (store[id] = {});
+        rec.state = (rec.state === btn.dataset.m) ? null : btn.dataset.m;
+        if(!rec.state) delete rec.state;
+        save(); paint(card); tally();
+      });
+    });
+    var ta = card.querySelector('textarea');
+    if(ta){
+      ta.addEventListener('input', function(){
+        var rec = store[id] || (store[id] = {});
+        rec.note = ta.value;
+        save();
+      });
+    }
+    paint(card);
+  });
+  tally();
+
+  var LABEL = { ok:'ОК', no:'ПРОВАЛ', sk:'ПРОПУСК' };
+
+  document.getElementById('bExport').addEventListener('click', function(){
+    var lines = ['ПРОГОННЫЙ ЛИСТ — logistic-node (saas~19.4)',
+                 'снято: ' + new Date().toLocaleString('ru-RU'), ''];
+    cards.forEach(function(c){
+      var id = c.dataset.tc;
+      var rec = store[id] || {};
+      var title = c.querySelector('h3').textContent.trim();
+      lines.push(id + '  [' + (LABEL[rec.state] || '—') + ']  ' + title);
+      if(rec.note && rec.note.trim()) lines.push('      ' + rec.note.trim().replace(/\n/g,'\n      '));
+    });
+    var ok = cards.filter(function(c){ return (store[c.dataset.tc]||{}).state==='ok'; }).length;
+    var no = cards.filter(function(c){ return (store[c.dataset.tc]||{}).state==='no'; }).length;
+    lines.push('', 'итог: ОК ' + ok + ' · ПРОВАЛ ' + no + ' · всего ' + total);
+    var text = lines.join('\n');
+    var btn = this;
+    function done(msg){ var old = btn.textContent; btn.textContent = msg; setTimeout(function(){ btn.textContent = old; }, 1600); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ done('В буфере'); }, function(){ console.log(text); done('См. консоль'); });
+    } else { console.log(text); done('См. консоль'); }
+  });
+
+  document.getElementById('bReset').addEventListener('click', function(){
+    if(!confirm('Стереть все отметки и заметки?')) return;
+    store = {}; save();
+    cards.forEach(function(c){
+      var ta = c.querySelector('textarea'); if(ta) ta.value = '';
+      paint(c);
+    });
+    tally();
+  });
+
+  document.getElementById('stamp').textContent = 'открыт ' + new Date().toLocaleDateString('ru-RU');
+})();
+</script>
+</body>
+</html>

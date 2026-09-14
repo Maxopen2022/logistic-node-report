@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Стенд logistic-node — ревизия, правки, история спроса</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f2efe6;
+  --paper-2:#e9e4d7;
+  --ink:#16150f;
+  --ink-soft:#4a473c;
+  --ink-faint:#8a8575;
+  --rule:#c9c2ae;
+  --rule-hard:#16150f;
+  --stamp:#b4302b;
+  --stamp-ink:#8e2420;
+  --blue:#1f3d6b;
+  --green:#2f6b45;
+  --amber:#9a6b12;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --serif:"Instrument Serif",Georgia,serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:15px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.28;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='.5'/></svg>");
+  mix-blend-mode:multiply;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:0 32px 140px}
+
+/* ---------- header ---------- */
+.masthead{padding:64px 0 0;border-bottom:2px solid var(--rule-hard)}
+.kicker{
+  font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--stamp);font-weight:600;margin-bottom:22px;
+}
+.masthead h1{
+  font-family:var(--serif);font-weight:400;font-size:clamp(44px,7.4vw,92px);
+  line-height:.95;letter-spacing:-.015em;margin:0 0 8px;max-width:16ch;
+}
+.masthead h1 em{font-style:italic;color:var(--stamp)}
+.dek{
+  font-size:17px;color:var(--ink-soft);max-width:62ch;margin:0 0 40px;
+}
+.meta{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:0;border-top:1px solid var(--rule);margin-bottom:0;
+}
+.meta div{
+  padding:14px 16px 16px 0;border-right:1px solid var(--rule);
+}
+.meta div:last-child{border-right:0}
+.meta dt{
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-faint);margin:0 0 4px;
+}
+.meta dd{margin:0;font-family:var(--mono);font-size:14px;font-weight:500}
+
+/* ---------- section scaffolding ---------- */
+section{padding:72px 0 0;scroll-margin-top:20px}
+.sec-head{display:flex;align-items:baseline;gap:18px;border-bottom:1px solid var(--rule-hard);padding-bottom:10px;margin-bottom:34px}
+.sec-num{
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.16em;
+  color:var(--stamp);white-space:nowrap;
+}
+.sec-head h2{
+  font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.4vw,40px);
+  line-height:1.05;margin:0;letter-spacing:-.01em;flex:1;
+}
+.lede{font-size:16px;color:var(--ink-soft);max-width:68ch;margin:0 0 28px}
+
+/* ---------- stamps ---------- */
+.stamp{
+  display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;padding:3px 9px 2px;
+  border:1.5px solid currentColor;border-radius:2px;white-space:nowrap;
+}
+.s-ok{color:var(--green)}
+.s-man{color:var(--amber)}
+.s-dev{color:var(--stamp)}
+.s-fix{color:var(--blue)}
+
+/* ---------- defect entries ---------- */
+.defects{display:grid;gap:0;border-top:1px solid var(--rule)}
+.defect{
+  display:grid;grid-template-columns:52px 1fr;gap:0 22px;
+  padding:26px 0;border-bottom:1px solid var(--rule);
+}
+.defect-n{
+  font-family:var(--serif);font-size:46px;line-height:.8;color:var(--stamp);
+  opacity:.85;padding-top:4px;
+}
+.defect h3{
+  font-family:var(--sans);font-weight:600;font-size:17px;margin:0 0 6px;
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+}
+.defect p{margin:0 0 12px;color:var(--ink-soft);max-width:76ch}
+.ba{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);
+  border:1px solid var(--rule);max-width:640px;
+}
+.ba > div{background:var(--paper);padding:10px 13px}
+.ba dt{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:3px;
+}
+.ba dd{margin:0;font-family:var(--mono);font-size:13px;font-weight:500;line-height:1.45}
+.was dd{color:var(--stamp-ink);text-decoration:line-through;text-decoration-thickness:1px;opacity:.75}
+.now dd{color:var(--green)}
+
+/* ---------- tables ---------- */
+.tbl{width:100%;border-collapse:collapse;font-size:14px;margin:0 0 8px}
+.tbl caption{
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-faint);text-align:left;padding-bottom:8px;
+}
+.tbl th{
+  font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-faint);text-align:left;
+  padding:0 12px 7px 0;border-bottom:1.5px solid var(--rule-hard);white-space:nowrap;
+}
+.tbl td{padding:9px 12px 9px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+.tbl tr:last-child td{border-bottom:1.5px solid var(--rule-hard)}
+.tbl .num{text-align:right;font-family:var(--mono);font-weight:500;padding-right:0}
+.tbl .node{font-family:var(--mono);font-weight:600}
+.tbl tbody tr:hover td{background:var(--paper-2)}
+
+/* ---------- matrix ---------- */
+.matrix{width:100%;border-collapse:collapse;font-size:14.5px}
+.matrix th{
+  font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-faint);text-align:left;
+  padding:0 14px 8px 0;border-bottom:1.5px solid var(--rule-hard);
+}
+.matrix td{padding:14px 14px 14px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+.matrix tbody tr:hover td{background:var(--paper-2)}
+.matrix .idx{
+  font-family:var(--mono);font-size:12px;color:var(--ink-faint);width:34px;white-space:nowrap;
+}
+.matrix .what{font-weight:500;width:30%}
+.matrix .fact{color:var(--ink-soft);font-size:13.5px}
+.matrix .verdict{width:120px;white-space:nowrap}
+.matrix code{
+  font-family:var(--mono);font-size:12.5px;background:var(--paper-2);
+  padding:1px 5px;border-radius:2px;
+}
+
+/* ---------- topology ---------- */
+.topo{
+  border:1px solid var(--rule-hard);padding:30px 26px;background:var(--paper-2);
+  display:grid;gap:22px;margin-bottom:10px;
+}
+.tier{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;align-items:stretch}
+.node{
+  border:1.5px solid var(--ink);background:var(--paper);padding:11px 15px;min-width:120px;
+  position:relative;transition:transform .18s ease, box-shadow .18s ease;
+}
+.node:hover{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink)}
+.node b{font-family:var(--mono);font-size:14px;font-weight:600;display:block}
+.node span{font-size:11.5px;color:var(--ink-faint);display:block;line-height:1.35}
+.node .qty{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:600;margin-top:3px;display:block}
+.node.hub{border-style:dashed;border-color:var(--stamp);background:transparent}
+.node.hub b{color:var(--stamp)}
+.node.skew{border-width:2px;box-shadow:3px 3px 0 var(--stamp)}
+.node.skew:hover{box-shadow:5px 5px 0 var(--stamp)}
+.topo-note{
+  font-family:var(--mono);font-size:11px;color:var(--ink-faint);text-align:center;
+  letter-spacing:.05em;
+}
+
+/* ---------- bars ---------- */
+.bar{
+  height:9px;background:var(--rule);position:relative;min-width:70px;display:block;
+  border:1px solid var(--rule);
+}
+.bar i{display:block;height:100%;background:var(--blue)}
+.bar.hi i{background:var(--stamp)}
+
+/* ---------- callout ---------- */
+.callout{
+  border-left:3px solid var(--stamp);background:var(--paper-2);padding:18px 22px;
+  margin:26px 0;max-width:80ch;
+}
+.callout p{margin:0;color:var(--ink-soft)}
+.callout strong{color:var(--ink)}
+.callout .tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--stamp);font-weight:600;display:block;margin-bottom:7px;
+}
+
+/* ---------- module scope ---------- */
+.scope{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.scope article{background:var(--paper);padding:22px 20px}
+.scope h4{
+  font-family:var(--serif);font-size:24px;font-weight:400;margin:0 0 4px;line-height:1.1;
+}
+.scope .pn{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--stamp);font-weight:600;margin-bottom:10px;
+}
+.scope p{margin:0;font-size:14px;color:var(--ink-soft)}
+
+/* ---------- protocol ---------- */
+.steps{counter-reset:st;list-style:none;padding:0;margin:0;border-top:1px solid var(--rule)}
+.steps li{
+  counter-increment:st;padding:16px 0 16px 52px;border-bottom:1px solid var(--rule);
+  position:relative;color:var(--ink-soft);
+}
+.steps li::before{
+  content:counter(st,decimal-leading-zero);position:absolute;left:0;top:16px;
+  font-family:var(--mono);font-size:12px;font-weight:600;color:var(--stamp);
+}
+.steps b{color:var(--ink);font-weight:600}
+
+footer{
+  margin-top:80px;padding-top:22px;border-top:2px solid var(--rule-hard);
+  font-family:var(--mono);font-size:11px;color:var(--ink-faint);
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;letter-spacing:.06em;
+}
+
+/* ---------- entrance ---------- */
+@media (prefers-reduced-motion:no-preference){
+  .reveal{opacity:0;transform:translateY(14px);animation:rise .7s cubic-bezier(.2,.7,.3,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .masthead .kicker{animation-delay:.02s}
+  .masthead h1{animation-delay:.10s}
+  .masthead .dek{animation-delay:.20s}
+  .masthead .meta{animation-delay:.30s}
+}
+@media(max-width:720px){
+  .wrap{padding:0 20px 90px}
+  .matrix .what{width:auto}
+  .matrix thead{display:none}
+  .matrix td{display:block;border:0;padding:3px 0}
+  .matrix tr{display:block;padding:16px 0;border-bottom:1px solid var(--rule)}
+  .ba{grid-template-columns:1fr}
+  .defect{grid-template-columns:1fr;gap:6px}
+  .defect-n{font-size:32px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker reveal">Ревизия стенда · Odoo 19 saas~19.4 · logistic-node.odoo.com</div>
+  <h1 class="reveal">Распределённая логистика: <em>что стенд теперь умеет мерить</em></h1>
+  <p class="dek reveal">Четыре дефекта конфигурации найдены и устранены, восемь недель истории спроса записаны задним числом, остатки вернулись на сценарные значения. Поверх этого четыре процесса из девяти закрыты прямо в базе — пятью полями и пятью серверными действиями, без единой строки внешнего модуля. Стенд перешёл из состояния «данные выглядят правдоподобно» в состояние «failover нажимается кнопкой и логируется».</p>
+  <dl class="meta reveal">
+    <div><dt>База</dt><dd>logistic-node</dd></div>
+    <div><dt>Сборка</dt><dd>saas~19.4</dd></div>
+    <div><dt>Узлов</dt><dd>8</dd></div>
+    <div><dt>Маршрутов</dt><dd>56</dd></div>
+    <div><dt>Правил пополнения</dt><dd>160</dd></div>
+    <div><dt>История спроса</dt><dd>8 недель</dd></div>
+    <div><dt>Закрыто настройкой</dt><dd>4 из 9</dd></div>
+  </dl>
+</header>
+
+<!-- ═══════════ 1 · РЕВИЗИЯ ═══════════ -->
+<section id="revision">
+  <div class="sec-head">
+    <span class="sec-num">01 / РЕВИЗИЯ</span>
+    <h2>Что было настроено неверно</h2>
+  </div>
+  <p class="lede">Проверка шла по конфигурации, а не по интерфейсу: правила тяги, триггеры орденпоинтов, горизонт компании, именование типов операций. Четыре находки, все исправлены через коннектор.</p>
+
+  <div class="defects">
+
+    <article class="defect">
+      <div class="defect-n">1</div>
+      <div>
+        <h3>Удвоенное время доставки на всех 56 маршрутах <span class="stamp s-fix">исправлено</span></h3>
+        <p>Задержка стояла на обеих ногах маршрута — и «склад → транзит», и «транзит → назначение». Орденпоинт при этом показывал <code>lead_days</code> только по второй ноге, а физически груз шёл вдвое дольше. Доказано замером: маршрут S5 ← S3 объявлял 2 дня, но между <code>S3/OUT/00001</code> (11.09) и <code>S5/IN/00001</code> (13.09) прошло 4 дня.</p>
+        <dl class="ba">
+          <div class="was"><dt>Было</dt><dd>delay на обеих ногах<br>заявлено 2 дн. → фактически 4 дн.</dd></div>
+          <div class="now"><dt>Стало</dt><dd>112 отгрузочных правил → delay 0<br>56 приёмных: 6×1 дн, 44×2 дн, 6×3 дн</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="defect">
+      <div class="defect-n">2</div>
+      <div>
+        <h3>121 правило пополнения из 160 не срабатывало <span class="stamp s-fix">исправлено</span></h3>
+        <p>Все 120 магазинных правил и одно на WH-A стояли в ручном триггере. Ежедневный планировщик их не видел, то есть сеть физически не пополнялась — а значит любой замер failover считал бы действия в мёртвой системе.</p>
+        <dl class="ba">
+          <div class="was"><dt>Было</dt><dd>39 auto · 121 manual</dd></div>
+          <div class="now"><dt>Стало</dt><dd>160 auto</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="defect">
+      <div class="defect-n">3</div>
+      <div>
+        <h3>Горизонт пополнения — год <span class="stamp s-fix">исправлено</span></h3>
+        <p><code>res.company.horizon_days = 365</code> заставлял отчёт пополнения смотреть на годовую потребность вперёд. Прогноз считался до сентября 2027-го, и любая оценка «сколько заказать» была оторвана от недельного цикла магазина.</p>
+        <dl class="ba">
+          <div class="was"><dt>Было</dt><dd>365 дн. → горизонт 14.09.2027</dd></div>
+          <div class="now"><dt>Стало</dt><dd>7 дн. → горизонт 21–22.09.2026</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="defect">
+      <div class="defect-n">4</div>
+      <div>
+        <h3>Рассинхрон именования типов операций <span class="stamp s-fix">исправлено</span></h3>
+        <p>WH-A остался на английских названиях, когда остальные семь узлов были переименованы, а его POS-тип использовал чужой префикс <code>WH/POS/</code>. В списках операций это ломало сортировку и мешало считать действия по узлам.</p>
+        <dl class="ba">
+          <div class="was"><dt>Было</dt><dd>WH-A: Delivery Orders, Receipts<br>префикс WH/POS/</dd></div>
+          <div class="now"><dt>Стало</dt><dd>единая схема по всем узлам<br>префикс WHA/POS/</dd></div>
+        </dl>
+      </div>
+    </article>
+
+  </div>
+
+  <div class="callout">
+    <span class="tag">Отменённая правка</span>
+    <p>Собирался добавить маршрут <strong>Buy</strong> всем 20 товарам — у них пустой <code>route_ids</code>. Проверка <code>stock.route</code> id 4 показала <code>product_selectable: false</code>: в 19-й версии Buy выбирается на складе, а не на товаре. Пустой список здесь — норма, а не дефект. Правка отменена до внесения.</p>
+  </div>
+
+  <div class="callout">
+    <span class="tag">Оставлено намеренно</span>
+    <p><code>propagate_cancel: false</code> на транзитных правилах — чтобы отмена цепочки требовала ручных действий и замер failover оставался честным. Нулевой остаток FST-03 на WH-B, орденпоинт 125 (латераль S5 ← S3) и 103 (каскад WH-A ← WH-B) — это сценарные заготовки, а не ошибки.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 2 · ТОПОЛОГИЯ ═══════════ -->
+<section id="topology">
+  <div class="sec-head">
+    <span class="sec-num">02 / ТОПОЛОГИЯ</span>
+    <h2>Состояние сети на момент замера</h2>
+  </div>
+  <p class="lede">Все восемь узлов одношаговые (<code>one_step</code> / <code>ship_only</code>) — по прямому указанию, чтобы лишние шаги приёмки не раздували счётчик действий. Полная сетка Resupply From: каждый узел может питать каждый.</p>
+
+  <div class="topo">
+    <div class="tier">
+      <div class="node"><b>WH-A</b><span>Центральный склад</span><span class="qty">5 075 ед · 20 SKU</span></div>
+      <div class="node"><b>WH-B</b><span>Резервный склад</span><span class="qty">2 490 ед · 20 SKU</span></div>
+    </div>
+    <div class="tier">
+      <div class="node hub"><b>Транзит</b><span>Inter-warehouse transit</span><span class="qty">56 маршрутов × 2 ноги</span></div>
+    </div>
+    <div class="tier">
+      <div class="node skew"><b>S1</b><span>Подол · дефицит ESP-01</span><span class="qty">722 ед</span></div>
+      <div class="node skew"><b>S2</b><span>Оболонь · дефицит FST-01</span><span class="qty">712 ед</span></div>
+      <div class="node skew"><b>S3</b><span>Троещина · ноль UNV-01</span><span class="qty">719 ед</span></div>
+      <div class="node skew"><b>S4</b><span>Львов · донор ESP-01</span><span class="qty">746 ед</span></div>
+      <div class="node"><b>S5</b><span>Одесса · база</span><span class="qty">725 ед</span></div>
+      <div class="node skew"><b>S6</b><span>Днепр · донор FST-01</span><span class="qty">770 ед</span></div>
+    </div>
+    <p class="topo-note">жирная рамка — сценарный перекос · пунктир — транзитная локация</p>
+  </div>
+
+  <table class="tbl">
+    <caption>Открытые перемещения на момент замера — предаварийное состояние</caption>
+    <thead><tr><th>Узел</th><th>Тип</th><th class="num">Готово</th><th class="num">В ожидании</th><th class="num">Всего</th></tr></thead>
+    <tbody>
+      <tr><td class="node">WH-A</td><td>приёмки + отгрузки</td><td class="num">13</td><td class="num">0</td><td class="num">13</td></tr>
+      <tr><td class="node">S1</td><td>поступления</td><td class="num">1</td><td class="num">1</td><td class="num">2</td></tr>
+      <tr><td class="node">S2</td><td>поступления</td><td class="num">1</td><td class="num">0</td><td class="num">1</td></tr>
+      <tr><td class="node">S3</td><td>поступления + отгрузка</td><td class="num">1</td><td class="num">5</td><td class="num">6</td></tr>
+      <tr><td class="node">S5</td><td>поступления</td><td class="num">0</td><td class="num">1</td><td class="num">1</td></tr>
+      <tr><td class="node"><strong>Итого</strong></td><td>—</td><td class="num"><strong>16</strong></td><td class="num"><strong>7</strong></td><td class="num"><strong>23</strong></td></tr>
+    </tbody>
+  </table>
+  <p class="lede" style="margin-top:16px">Плюс 5 подтверждённых заказов клиентов и 2 проведённых закупки на WH-A. Это и есть тот «живой» фон, поверх которого будет считаться отключение центрального узла.</p>
+</section>
+
+<!-- ═══════════ 3 · ИСТОРИЯ ═══════════ -->
+<section id="history">
+  <div class="sec-head">
+    <span class="sec-num">03 / ИСТОРИЯ</span>
+    <h2>Восемь недель спроса, которых не было</h2>
+  </div>
+  <p class="lede">Главный пробел стенда: в базе не было ни одной завершённой продажи. Без потребления нечем считать дневную скорость, нечем обосновать мин/макс и невозможно проверить подсказку количеств по историческому спросу. Записано 48 отгрузок «магазин → покупатель» за 20.07 — 07.09.2026.</p>
+
+  <div class="callout">
+    <span class="tag">Механика</span>
+    <p>Остатки сперва подняты инвентаризацией ровно на восьминедельный расход, и только потом проведены отгрузки — чтобы склад приземлился обратно на сценарные значения без второго корректирующего прохода. <strong>Провести задним числом напрямую нельзя:</strong> <code>button_validate</code> всегда ставит текущий момент, поэтому после валидации дата переписывается в трёх моделях — <code>stock.picking.date_done</code>, <code>stock.move.date</code> и <code>stock.move.line.date</code>. Пропустить любую из них — и отчёты по историческому спросу отнесут продажу не к той неделе.</p>
+  </div>
+
+  <table class="tbl">
+    <caption>Недельный расход по профилям, единиц</caption>
+    <thead>
+      <tr><th>Неделя</th><th>Дата</th><th class="num">Базовый профиль<br>S2 · S3 · S4 · S5</th><th style="width:150px">—</th><th class="num">Профиль FST×2<br>S1 · S6</th><th style="width:150px">—</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="node">W1</td><td>20.07.2026</td><td class="num">42</td><td><span class="bar"><i style="width:91%"></i></span></td><td class="num">61</td><td><span class="bar hi"><i style="width:94%"></i></span></td></tr>
+      <tr><td class="node">W2</td><td>27.07.2026</td><td class="num">46</td><td><span class="bar"><i style="width:100%"></i></span></td><td class="num">65</td><td><span class="bar hi"><i style="width:100%"></i></span></td></tr>
+      <tr><td class="node">W3</td><td>03.08.2026</td><td class="num">36</td><td><span class="bar"><i style="width:78%"></i></span></td><td class="num">53</td><td><span class="bar hi"><i style="width:82%"></i></span></td></tr>
+      <tr><td class="node">W4</td><td>10.08.2026</td><td class="num">41</td><td><span class="bar"><i style="width:89%"></i></span></td><td class="num">61</td><td><span class="bar hi"><i style="width:94%"></i></span></td></tr>
+      <tr><td class="node">W5</td><td>17.08.2026</td><td class="num">37</td><td><span class="bar"><i style="width:80%"></i></span></td><td class="num">60</td><td><span class="bar hi"><i style="width:92%"></i></span></td></tr>
+      <tr><td class="node">W6</td><td>24.08.2026</td><td class="num">36</td><td><span class="bar"><i style="width:78%"></i></span></td><td class="num">55</td><td><span class="bar hi"><i style="width:85%"></i></span></td></tr>
+      <tr><td class="node">W7</td><td>31.08.2026</td><td class="num">35</td><td><span class="bar"><i style="width:76%"></i></span></td><td class="num">55</td><td><span class="bar hi"><i style="width:85%"></i></span></td></tr>
+      <tr><td class="node">W8</td><td>07.09.2026</td><td class="num">37</td><td><span class="bar"><i style="width:80%"></i></span></td><td class="num">55</td><td><span class="bar hi"><i style="width:85%"></i></span></td></tr>
+      <tr><td class="node"><strong>Σ</strong></td><td>8 недель</td><td class="num"><strong>310</strong></td><td>≈ 39 ед/нед</td><td class="num"><strong>465</strong></td><td>≈ 58 ед/нед</td></tr>
+    </tbody>
+  </table>
+
+  <table class="tbl" style="margin-top:38px">
+    <caption>Сверка: записанный расход против итогового остатка</caption>
+    <thead><tr><th>Магазин</th><th class="num">Документов</th><th class="num">Строк</th><th class="num">Продано</th><th class="num">Остаток факт</th><th class="num">Остаток цель</th><th>Сходится</th></tr></thead>
+    <tbody>
+      <tr><td class="node">S1</td><td class="num">8</td><td class="num">114</td><td class="num">465</td><td class="num">722</td><td class="num">722</td><td><span class="stamp s-ok">да</span></td></tr>
+      <tr><td class="node">S2</td><td class="num">8</td><td class="num">114</td><td class="num">310</td><td class="num">712</td><td class="num">712</td><td><span class="stamp s-ok">да</span></td></tr>
+      <tr><td class="node">S3</td><td class="num">8</td><td class="num">114</td><td class="num">310</td><td class="num">719</td><td class="num">719</td><td><span class="stamp s-ok">да</span></td></tr>
+      <tr><td class="node">S4</td><td class="num">8</td><td class="num">114</td><td class="num">310</td><td class="num">746</td><td class="num">746</td><td><span class="stamp s-ok">да</span></td></tr>
+      <tr><td class="node">S5</td><td class="num">8</td><td class="num">114</td><td class="num">310</td><td class="num">725</td><td class="num">725</td><td><span class="stamp s-ok">да</span></td></tr>
+      <tr><td class="node">S6</td><td class="num">8</td><td class="num">114</td><td class="num">465</td><td class="num">770</td><td class="num">770</td><td><span class="stamp s-ok">да</span></td></tr>
+      <tr><td class="node"><strong>Итого</strong></td><td class="num"><strong>48</strong></td><td class="num"><strong>684</strong></td><td class="num"><strong>2 170</strong></td><td class="num"><strong>4 394</strong></td><td class="num"><strong>4 394</strong></td><td><span class="stamp s-ok">да</span></td></tr>
+    </tbody>
+  </table>
+  <p class="lede" style="margin-top:16px">Сценарные перекосы уцелели: S1/ESP-01 = 1, S2/FST-01 = 2, S3/UNV-01 = 0, S4/ESP-01 = 25, S6/FST-01 = 60. Отрицательных остатков нет ни в одной точке.</p>
+</section>
+
+<!-- ═══════════ 4 · ПОКРЫТИЕ ═══════════ -->
+<section id="coverage">
+  <div class="sec-head">
+    <span class="sec-num">04 / ПОКРЫТИЕ</span>
+    <h2>Девять процессов против штатного Odoo</h2>
+  </div>
+  <p class="lede">Граница проходит не по «физике», а по «решениям». Перемещение груза Odoo закрывает полностью. Выбор, <em>откуда</em> и <em>когда</em> брать, когда привычный источник недоступен, — не закрывает ничем. Четыре вердикта ниже сменились с «доработки» на «конфиг»: это решения, которые удалось выразить полями и серверными действиями прямо на стенде — см. раздел 05.</p>
+
+  <table class="matrix">
+    <thead><tr><th class="idx">№</th><th class="what">Процесс</th><th class="fact">Что показал стенд</th><th class="verdict">Вердикт</th></tr></thead>
+    <tbody>
+      <tr><td class="idx">1</td><td class="what">Сеть узлов и маршруты поставки</td><td class="fact">Полная сетка 8×8 = 56 маршрутов через транзитную локацию собирается штатно. Odoo сам сливает отгрузки на разные магазины в один документ.</td><td class="verdict"><span class="stamp s-ok">штатно</span></td></tr>
+      <tr><td class="idx">2</td><td class="what">Состояние узла<br><span style="font-weight:400;color:var(--ink-faint);font-size:13px">доступен / ограничен / выведен</span></td><td class="fact">В модели понятия нет, архивирование с остатком заблокировано. Закрыто настройкой: поля <code>x_node_state</code> и <code>x_failover_to</code> выведены на форму склада отдельным блоком. Отключение узла больше не требует архивирования. Среднее состояние «ограничен» тоже не декорация: такой узел не выбирается ни донором, ни резервом, но уже назначенные на него правила не срываются с места.</td><td class="verdict"><span class="stamp s-fix">конфиг</span></td></tr>
+      <tr><td class="idx">3</td><td class="what">Плановое пополнение по мин/макс</td><td class="fact">160 орденпоинтов работают после перевода в auto. Горизонт и lead time теперь дают осмысленные даты.</td><td class="verdict"><span class="stamp s-man">вручную</span></td></tr>
+      <tr><td class="idx">4</td><td class="what">Переключение источника у точки</td><td class="fact">Массовая смена маршрута в списке правил работает — замерено 7 действий на точку.</td><td class="verdict"><span class="stamp s-man">вручную</span></td></tr>
+      <tr><td class="idx">5</td><td class="what">Каскад источников<br><span style="font-weight:400;color:var(--ink-faint);font-size:13px">первый непустой донор</span></td><td class="fact">Само правило по-прежнему знает один источник. Каскад надстроен действием: обходит <code>x_source_priority</code>, сверяет свободный остаток и переводит правило на первый покрывающий узел. Проверено — при нужде 29 пропустило WH-A (27) и выбрало WH-B (30). Ночной <code>ir.cron</code> прогоняет каскад по всем дефицитным правилам перед планировщиком.</td><td class="verdict"><span class="stamp s-fix">конфиг</span></td></tr>
+      <tr><td class="idx">6</td><td class="what">Исполнение переброски</td><td class="fact">Транзит, приёмка, батчи — штатно. Действия считаются, оценки реалистичны.</td><td class="verdict"><span class="stamp s-man">вручную</span></td></tr>
+      <tr><td class="idx">7</td><td class="what">Правило выбора латерального донора</td><td class="fact">Маршрут между магазинами настраивается штатно (S5 ← S3). Выбор донора закрыт действием: считает излишек сверх собственного максимума магазина и берёт наибольший. Проверено — S1/FST-01 нашёл S6 с излишком 45, отсеяв пять кандидатов с нулём.</td><td class="verdict"><span class="stamp s-fix">конфиг</span></td></tr>
+      <tr><td class="idx">8</td><td class="what">Переадресация документов</td><td class="fact">Смена склада на подтверждённом заказе и Deliver To на подтверждённой закупке проходят, но отгрузка и приёмка остаются на старом складе.</td><td class="verdict"><span class="stamp s-man">вручную</span></td></tr>
+      <tr><td class="idx">9</td><td class="what">Failover узла</td><td class="fact">Стал кнопкой в меню склада: одно действие вместо кабинетных ≈ 70–115 в 6 меню. Проверено на WH-A — 60 правил шести магазинов переключено на WH-B и возвращено ровно в исходное состояние. Заодно глушатся 20 собственных правил выведенного узла: мёртвый склад больше не заказывает себе товар.</td><td class="verdict"><span class="stamp s-fix">конфиг</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="font-family:var(--serif);font-weight:400;font-size:28px;margin:52px 0 8px">Проверки на стенде</h3>
+  <p class="lede">Утверждения о 19-й версии, которые проверены запросом к базе, а не памятью о прошлых версиях.</p>
+
+  <table class="matrix">
+    <thead><tr><th class="idx">№</th><th class="what">Проверка</th><th class="fact">Результат</th><th class="verdict">Итог</th></tr></thead>
+    <tbody>
+      <tr><td class="idx">01</td><td class="what">Архивирование склада с остатком</td><td class="fact">Заблокировано дословно — как и предполагалось кабинетно.</td><td class="verdict"><span class="stamp s-ok">подтв.</span></td></tr>
+      <tr><td class="idx">02</td><td class="what">Массовая смена маршрута в списке</td><td class="fact">Работает. Прогнано на S1 и возвращено обратно, чтобы полный замер шёл с чистого листа.</td><td class="verdict"><span class="stamp s-ok">подтв.</span></td></tr>
+      <tr><td class="idx">03</td><td class="what">Смена склада на подтверждённом SO</td><td class="fact">Проходит, но документ отгрузки остаётся на старом складе.</td><td class="verdict"><span class="stamp s-man">частично</span></td></tr>
+      <tr><td class="idx">04</td><td class="what">Слияние отгрузок через транзит</td><td class="fact">Odoo объединяет отгрузки на разные магазины в один документ — незапланированный плюс к failover.</td><td class="verdict"><span class="stamp s-ok">плюс</span></td></tr>
+      <tr><td class="idx">05</td><td class="what">«Suggest quantities» из документации 19.0</td><td class="fact">В сборке saas~19.4 функция не найдена. Требует проверки глазами в каталоге товаров на закупке.</td><td class="verdict"><span class="stamp s-dev">нет</span></td></tr>
+      <tr><td class="idx">06</td><td class="what">Маршрут Buy на товаре</td><td class="fact"><code>product_selectable: false</code> — в 19-й выбирается на складе. Пустой <code>route_ids</code> у товаров корректен.</td><td class="verdict"><span class="stamp s-ok">норма</span></td></tr>
+      <tr><td class="idx">07</td><td class="what">Источник <code>lead_days</code> орденпоинта</td><td class="fact">Берётся с ноги «транзит → назначение». Физическая длина цепочки — сумма delay обеих ног.</td><td class="verdict"><span class="stamp s-man">нюанс</span></td></tr>
+      <tr><td class="idx">08</td><td class="what">Дубли MTO-правил при полной сетке</td><td class="fact">Каждый маршрут добавляет своё правило «Stock → Транзит» в общий маршрут MTO: 56 идентичных правил вместо 8.</td><td class="verdict"><span class="stamp s-man">шум</span></td></tr>
+      <tr><td class="idx">09</td><td class="what">Пять цепочек на одном орденпоинте<br><span style="font-weight:400;color:var(--ink-faint);font-size:13px">пересмотрено — версия «повторных прогонов» не подтвердилась</span></td><td class="fact">Считалось, что каждый прогон планировщика плодит новую цепочку. Не подтвердилось: все четыре документа созданы <em>в одну секунду</em>, одним правилом, с одним <code>origin OP/00123</code> и одним сроком. Переордера тоже нет — 0 на руках + 31 входящих − 24 исходящих даёт прогноз ровно 7, как и показывает Odoo. Дефект не в количестве, а в дроблении документов.</td><td class="verdict"><span class="stamp s-man">не дефект</span></td></tr>
+      <tr><td class="idx">10</td><td class="what">Куда делись группы снабжения</td><td class="fact">Причина дробления структурная: модели <code>procurement.group</code> в saas~19.4 <strong>нет вообще</strong>, поле <code>group_id</code> убрано и с <code>stock.move</code>, и с <code>stock.picking</code>. Сливать процюремент одного орденпоинта в один документ больше нечем — на эту роль в 19-й остаются батчи.</td><td class="verdict"><span class="stamp s-dev">архитектура</span></td></tr>
+      <tr><td class="idx">11</td><td class="what"><code>qty_to_order</code> = 0 при остатке ниже минимума</td><td class="fact">Не дефект: <code>qty_forecast</code> уже покрыт открытыми входящими. Судить по <code>qty_to_order_computed</code> и незакрытым перемещениям.</td><td class="verdict"><span class="stamp s-ok">норма</span></td></tr>
+      <tr><td class="idx">12</td><td class="what">Остаток по отдельному узлу</td><td class="fact">Читается контекстом <code>warehouse_id</code>. Старый ключ <code>warehouse</code> из прошлых версий <em>молча игнорируется</em>: отдаёт остаток по всей компании — 1 920 вместо 800. Ошибки не будет, будет неверное число.</td><td class="verdict"><span class="stamp s-dev">ловушка</span></td></tr>
+      <tr><td class="idx">13</td><td class="what">Ограничения <code>safe_eval</code> в серверных действиях</td><td class="fact">Присваивание атрибута запрещено: <code>wh.x_node_state = 'down'</code> падает на <code>forbidden opcode STORE_ATTR</code>. Писать только через <code>.write({...})</code>.</td><td class="verdict"><span class="stamp s-man">нюанс</span></td></tr>
+      <tr><td class="idx">14</td><td class="what">Куда пишет <code>log()</code> из действия</td><td class="fact">В <code>ir.logging</code>, а не в чаттер записи. Это и есть журнал failover: каждый прогон оставляет строку с числом переключённых правил и причинами отказа по узлам.</td><td class="verdict"><span class="stamp s-ok">плюс</span></td></tr>
+      <tr><td class="idx">15</td><td class="what">Studio и автоматизации</td><td class="fact"><code>web_studio</code> и <code>base_automation</code> на базе не установлены. Но <code>ir.actions.server</code> работает — в базе уже 211 действий с кодом, и ручные поля <code>x_*</code> создаются штатно.</td><td class="verdict"><span class="stamp s-ok">норма</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <span class="tag">API 19-й версии — отличия, на которые напоролся</span>
+    <p><code>read_group</code> убран, вместо него <code>formatted_read_group</code> с <code>groupby</code> и <code>aggregates</code>. У орденпоинта больше нет <code>qty_multiple</code>, у <code>stock.picking</code> — <code>group_id</code>. Поля <code>qty_to_order</code> и <code>show_supply_warning</code> нехранимые: по ним нельзя ни агрегировать, ни фильтровать. В <code>stock.picking.create</code> каждая строка <code>move_ids</code> обязана нести свои <code>location_id</code> и <code>location_dest_id</code> — от заголовка они не наследуются.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 5 · СОБРАНО НАСТРОЙКОЙ ═══════════ -->
+<section id="built">
+  <div class="sec-head">
+    <span class="sec-num">05 / СОБРАНО</span>
+    <h2>Что закрыто режимом разработчика</h2>
+  </div>
+  <p class="lede">Studio и <code>base_automation</code> на базе не установлены, но этого и не потребовалось: шести ручных полей, пяти серверных действий, двух наследованных представлений и одного планировщика хватило, чтобы процессы 2, 5, 7 и 9 заработали без единой строки во внешнем модуле. Всё создано данными — переносится на прод выгрузкой записей.</p>
+
+  <table class="matrix">
+    <thead><tr><th class="idx">ID</th><th class="what">Объект</th><th class="fact">Назначение</th><th class="verdict">Проверка</th></tr></thead>
+    <tbody>
+      <tr><td class="idx">19577</td><td class="what"><code>stock.warehouse.x_node_state</code></td><td class="fact">Состояние узла: доступен / ограничен / выведен. То самое понятие, которого в модели не было.</td><td class="verdict"><span class="stamp s-ok">8 узлов</span></td></tr>
+      <tr><td class="idx">19578</td><td class="what"><code>stock.warehouse.x_failover_to</code></td><td class="fact">Резервный узел. WH-A ↔ WH-B замкнуты друг на друга.</td><td class="verdict"><span class="stamp s-ok">задано</span></td></tr>
+      <tr><td class="idx">19579</td><td class="what"><code>stock.warehouse.x_source_priority</code></td><td class="fact">Упорядоченный каскад источников. Киевские магазины — WHA,WHB; региональные — WHB,WHA.</td><td class="verdict"><span class="stamp s-ok">6 точек</span></td></tr>
+      <tr><td class="idx">19580</td><td class="what"><code>…orderpoint.x_route_before_failover</code></td><td class="fact">Память маршрута до переключения — без неё возврат узла в сеть необратим.</td><td class="verdict"><span class="stamp s-ok">round-trip</span></td></tr>
+      <tr><td class="idx">19585</td><td class="what"><code>…orderpoint.x_route_before_lateral</code></td><td class="fact">То же для латерала, отдельным полем: латераль может висеть одновременно с failover и не должна его затирать.</td><td class="verdict"><span class="stamp s-ok">round-trip</span></td></tr>
+      <tr><td class="idx">19587</td><td class="what"><code>…orderpoint.x_muted_by_failover</code></td><td class="fact">Метка «правило приглушено потому, что его узел выведен». Без неё возврат не отличил бы приглушённые правила от тех, что оператор перевёл в ручной режим сам.</td><td class="verdict"><span class="stamp s-ok">20 из 20</span></td></tr>
+      <tr><td class="idx">2770</td><td class="what">Форма склада: блок состояния<br><span style="font-weight:400;color:var(--ink-faint);font-size:13px">наследование <code>stock.view_warehouse</code></span></td><td class="fact">Состояние, резервный узел и каскад выведены на форму после контрагента. До этого поля существовали, но оператор их не видел — а значит, их как бы и не было.</td><td class="verdict"><span class="stamp s-fix">видно в UI</span></td></tr>
+      <tr><td class="idx">2771</td><td class="what">Список правил: две колонки</td><td class="fact">Маршрут до failover и метка приглушения добавлены как <code>optional="hide"</code> — включаются галочкой, когда нужно разобрать, что натворило переключение.</td><td class="verdict"><span class="stamp s-fix">видно в UI</span></td></tr>
+      <tr><td class="idx">933</td><td class="what">Вывести узел из сети<br><span style="font-weight:400;color:var(--ink-faint);font-size:13px">действие на складе</span></td><td class="fact">Ставит состояние «выведен», переводит все правила, что кормились от узла, на резервный, запоминает прежние маршруты.</td><td class="verdict"><span class="stamp s-ok">60 из 60</span></td></tr>
+      <tr><td class="idx">934</td><td class="what">Вернуть узел в сеть</td><td class="fact">Обратная операция строго по запомненным маршрутам, а не по догадке.</td><td class="verdict"><span class="stamp s-ok">60 из 60</span></td></tr>
+      <tr><td class="idx">935</td><td class="what">Выбрать источник по каскаду<br><span style="font-weight:400;color:var(--ink-faint);font-size:13px">действие на правиле</span></td><td class="fact">Первый узел из приоритета, у которого свободного остатка хватает на <code>qty_to_order</code>. Выведенные узлы пропускает.</td><td class="verdict"><span class="stamp s-ok">WHB, не WHA</span></td></tr>
+      <tr><td class="idx">936</td><td class="what">Латеральная переброска: найти донора</td><td class="fact">Донор — магазин с наибольшим излишком сверх собственного максимума. Хабы из каскада исключаются, чтобы латераль не выродилась в обычное пополнение.</td><td class="verdict"><span class="stamp s-ok">S6, +45</span></td></tr>
+      <tr><td class="idx">937</td><td class="what">Отменить латерал</td><td class="fact">Возврат правила на маршрут до переброски.</td><td class="verdict"><span class="stamp s-ok">round-trip</span></td></tr>
+      <tr><td class="idx">70</td><td class="what">Каскад: ночной прогон<br><span style="font-weight:400;color:var(--ink-faint);font-size:13px"><code>ir.cron</code>, ежедневно 02:00</span></td><td class="fact">Собирает правила с ненулевым дефицитом и прогоняет по ним каскад перед планировщиком. Если дефицитов нет — пишет об этом строку и ничего не трогает. Прогнан вручную дважды; на время замеров снят с расписания, чтобы не двигал стенд между прогонами.</td><td class="verdict"><span class="stamp s-fix">прогнан</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <span class="tag">Что показал прогон failover на WH-A</span>
+    <p>Одно действие вместо ≈ 70–115 ручных: 60 правил шести магазинов переключились с WH-A на WH-B, и каждое запомнило свой прежний маршрут. Возврат восстановил конфигурацию <em>в точности</em> — 20/20/20 по S1–S3, ни одного осиротевшего поля памяти. Защита сработала отдельно: попытка вывести WH-B, когда WH-A уже выведен, отклонена с текстом «резервный узел сам выведен из сети» — сеть нельзя обезглавить двумя кликами. Каждый прогон оставил строку в <code>ir.logging</code>.</p>
+  </div>
+
+  <div class="callout">
+    <span class="tag">Чему научил первый прогон крона</span>
+    <p>Ночной каскад с ходу переписал двенадцать правил на самих хабах: у WH-A и WH-B тоже был заполнен каскад источников — он нужен им для failover, — и действие честно подменило им маршрут <code>Buy</code> на межскладское пополнение. Хабы перестали закупать у поставщика и начали перекладывать друг у друга. Лечится одной строкой: правило трогаем, только если его текущий маршрут <em>межузловой</em>; закупочное не наш случай. Двенадцать правил разобраны поимённо — одиннадцать возвращены на <code>Buy</code>, двенадцатое сидело на межскладском маршруте изначально. Автоматика, которая умеет перенацеливать, обязана уметь и молчать.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 6 · ОСТАТОК ═══════════ -->
+<section id="scope">
+  <div class="sec-head">
+    <span class="sec-num">06 / ОСТАТОК</span>
+    <h2>Где настройка упирается в потолок</h2>
+  </div>
+  <p class="lede">Собранное — это <em>слой перенацеливания</em> поверх штатных правил, а не многоисточниковый движок. Он решает задачу в момент запуска и на этом честно заканчивается. Что остаётся модулю:</p>
+
+  <div class="scope">
+    <article>
+      <div class="pn">Ограничение 01</div>
+      <h4>Раз в сутки, а не по событию</h4>
+      <p>Крон закрыл худшую часть: каскад считается сам, ночью, перед планировщиком. Но это по-прежнему опрос по расписанию. Провал остатка в 02:05 будет замечен через сутки, а правильное место для пересчёта — момент подбора правила, и туда данными не дотянуться.</p>
+    </article>
+    <article>
+      <div class="pn">Ограничение 02</div>
+      <h4>Один донор на правило</h4>
+      <p>Если нужны 100, а у двух узлов по 60 — действие не возьмёт 60 + 40, оно сообщит, что донора нет. Дробление потребности между источниками штатной моделью не выражается.</p>
+    </article>
+    <article>
+      <div class="pn">Ограничение 03</div>
+      <h4>Расстояние не учитывается</h4>
+      <p>Донор выбирается по величине излишка. Логистического веса — плечо, стоимость, срок — в модели нет, и добавить его полем без пересчёта в подборе бессмысленно.</p>
+    </article>
+    <article>
+      <div class="pn">Ограничение 04</div>
+      <h4>Документы не переезжают</h4>
+      <p>Процесс 8 остаётся ручным: смена склада на подтверждённом заказе проходит, но отгрузка остаётся на старом узле. Это правится только кодом в <code>stock</code>.</p>
+    </article>
+    <article>
+      <div class="pn">Ограничение 05</div>
+      <h4>Сливать документы больше нечем</h4>
+      <p>Одна потребность распадается на пять цепочек, и собрать их обратно нельзя: <code>procurement.group</code> в 19-й версии нет, <code>group_id</code> убран и с перемещения, и с документа. Штатная замена — батчи, но это склейка на исполнении, а не единая заявка. Пока это косметика; станет проблемой, когда трудоёмкость failover будем измерять в документах.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ═══════════ 7 · ПРОТОКОЛ ═══════════ -->
+<section id="protocol">
+  <div class="sec-head">
+    <span class="sec-num">07 / ПРОТОКОЛ</span>
+    <h2>Замер failover WH-A</h2>
+  </div>
+  <p class="lede">Стенд к прогону готов: сеть живая, пополнения идут, история есть, перекосы на месте. Замеряется число действий оператора и время по шагам — теперь уже <em>против</em> собранной кнопки, а не в пустоту: конфигурационная ветка прогнана и заняла одно действие.</p>
+
+  <ol class="steps">
+    <li><b>Зафиксировать исходное.</b> 23 открытых перемещения, 5 заказов клиентов, 2 закупки, остатки по всем восьми узлам.</li>
+    <li><b>Вывести WH-A вручную.</b> Попытка архивировать с остатком 5 075 ед — ожидается отказ. Зафиксировать, чем оператор заменяет отключение, не имея поля состояния.</li>
+    <li><b>Переключить источники вручную.</b> Шесть магазинов переводятся на WH-B массовой сменой маршрута — ожидается 7 действий на точку. Эталон для сравнения: действие 933 делает то же за одно и логирует «60 из 60».</li>
+    <li><b>Разобрать транзит.</b> 13 документов WH-A: что отменяется, что доезжает, что зависает. <code>propagate_cancel: false</code> оставлен намеренно — отмена не каскадирует.</li>
+    <li><b>Переадресовать документы.</b> 5 заказов и 2 закупки на WH-A: смена склада проходит, но отгрузки остаются на старом — считать доработку руками.</li>
+    <li><b>Прогнать планировщик.</b> Проверить, что WH-B покрывает спрос: 2 490 ед против недельного расхода сети ≈ 271 ед — запас примерно на 9 недель.</li>
+    <li><b>Свести замер.</b> Число действий и меню против кабинетной оценки 70–115 в 6 меню — и против одного действия на собранной кнопке. Это и есть цена процесса 9 в понятных единицах.</li>
+  </ol>
+</section>
+
+<footer>
+  <span>logistic-node.odoo.com · saas~19.4 · компания logistic-node (id 1)</span>
+  <span><a href="testplan.html" style="color:var(--stamp);text-decoration:none;border-bottom:1px solid var(--stamp)">Прогонный лист — 16 сценариев →</a></span>
+  <span>Ревизия, история спроса и сборка на конфигурации — 14.09.2026</span>
+</footer>
+
+</div>
+</body>
+</html>
