@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Распределённая логистика на Odoo 19 — проблема и схема решения</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;600;700&family=Spline+Sans:wght@300;400;500;600&family=Azeret+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#071523;
+  --ink2:#0a1f33;
+  --panel:#0c2036;
+  --panel2:#102a44;
+  --line:rgba(125,190,255,.16);
+  --line-hi:rgba(125,190,255,.34);
+  --chalk:#e4eefb;
+  --chalk-soft:#a9c2dc;
+  --chalk-dim:#6d879f;
+  --cyan:#54d2f0;
+  --mint:#6fe0b0;
+  --amber:#ffc46b;
+  --rose:#ff8a72;
+  --violet:#b39bff;
+  --sans:'Spline Sans',sans-serif;
+  --disp:'Antonio',sans-serif;
+  --mono:'Azeret Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--ink);color:var(--chalk-soft);
+  font-family:var(--sans);font-size:15.5px;line-height:1.7;font-weight:300;
+  -webkit-font-smoothing:antialiased;
+}
+/* сетка-калька: фиксирована во вьюпорте, не растягивается на всю длину документа */
+body::before{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-color:var(--ink);
+  background-image:
+    linear-gradient(rgba(125,190,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(125,190,255,.05) 1px,transparent 1px),
+    linear-gradient(rgba(125,190,255,.08) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(125,190,255,.08) 1px,transparent 1px);
+  background-size:22px 22px,22px 22px,110px 110px,110px 110px;
+}
+body::after{
+  content:'';position:fixed;inset:0 0 auto;height:420px;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 110% 100% at 50% -20%,rgba(30,90,140,.5) 0%,transparent 70%);
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 26px 110px}
+
+/* ---------- masthead ---------- */
+.top{padding:78px 0 40px;position:relative}
+.rule{height:2px;background:var(--cyan);width:88px;margin-bottom:26px}
+.kicker{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--cyan);margin:0 0 20px;font-weight:400;
+}
+h1{
+  font-family:var(--disp);font-weight:700;
+  font-size:clamp(48px,8.4vw,104px);line-height:.9;letter-spacing:.005em;
+  text-transform:uppercase;color:var(--chalk);margin:0;
+}
+h1 .lt{display:block;color:var(--chalk-dim);font-weight:400}
+.dek{max-width:66ch;font-size:17px;margin:28px 0 0;color:var(--chalk-soft)}
+.dek b{color:var(--chalk);font-weight:500}
+
+.plate{
+  margin-top:40px;border:1px solid var(--line);background:rgba(10,31,51,.66);
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+}
+.plate > div{background:var(--ink2);padding:16px 18px}
+.plate dt{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--chalk-dim);margin:0 0 7px;
+}
+.plate dd{margin:0;font-family:var(--disp);font-size:30px;line-height:1;color:var(--chalk);font-weight:600}
+.plate dd small{font-family:var(--sans);font-size:13px;color:var(--chalk-dim);font-weight:300;display:block;margin-top:6px;line-height:1.4}
+
+/* ---------- nav ---------- */
+nav.toc{
+  margin-top:34px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:14px 0;display:flex;flex-wrap:wrap;gap:8px 22px;
+}
+nav.toc a{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--chalk-dim);text-decoration:none;transition:.16s;
+}
+nav.toc a:hover{color:var(--cyan)}
+nav.toc a b{color:var(--cyan);font-weight:400;margin-right:6px}
+
+/* ---------- sections ---------- */
+section{padding:74px 0 0;scroll-margin-top:20px}
+.sec-head{display:flex;align-items:baseline;gap:20px;border-bottom:1px solid var(--line-hi);padding-bottom:12px;margin-bottom:8px}
+.sec-num{
+  font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--cyan);
+  white-space:nowrap;padding-top:6px;
+}
+h2{
+  font-family:var(--disp);font-weight:600;font-size:clamp(28px,4.6vw,46px);
+  line-height:1;text-transform:uppercase;color:var(--chalk);margin:0;letter-spacing:.01em;
+}
+h3{
+  font-family:var(--disp);font-weight:600;font-size:25px;text-transform:uppercase;
+  color:var(--chalk);margin:46px 0 10px;letter-spacing:.015em;
+}
+h4{
+  font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--cyan);margin:0 0 10px;
+}
+p{margin:16px 0;max-width:74ch}
+.lede{font-size:16.5px;color:var(--chalk-soft);max-width:72ch;margin:20px 0 26px}
+.lede em{color:var(--chalk);font-style:normal;font-weight:500;border-bottom:1px solid var(--cyan);padding-bottom:1px}
+strong{color:var(--chalk);font-weight:500}
+em{color:var(--chalk);font-style:italic}
+code{
+  font-family:var(--mono);font-size:.85em;background:rgba(84,210,240,.09);
+  border:1px solid rgba(84,210,240,.18);padding:1px 5px;color:var(--cyan);
+  font-weight:400;white-space:nowrap;
+}
+a.lnk{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(84,210,240,.4)}
+a.lnk:hover{border-bottom-color:var(--cyan)}
+
+/* ---------- pull quote ---------- */
+.pull{
+  margin:44px 0;padding:34px 34px 34px 40px;border-left:3px solid var(--cyan);
+  background:linear-gradient(90deg,rgba(84,210,240,.09),transparent 70%);
+}
+.pull p{
+  font-family:var(--disp);font-weight:400;font-size:clamp(24px,3.6vw,36px);
+  line-height:1.12;color:var(--chalk);margin:0;max-width:26ch;text-transform:uppercase;
+}
+.pull .sub{
+  font-family:var(--sans);font-size:15px;text-transform:none;color:var(--chalk-soft);
+  margin-top:16px;max-width:64ch;line-height:1.65;font-weight:300;
+}
+
+/* ---------- cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:28px 0}
+.cards.two{grid-template-columns:repeat(2,1fr)}
+.card{
+  border:1px solid var(--line);background:var(--panel);padding:20px 20px 22px;
+  position:relative;
+}
+.card::before{
+  content:'';position:absolute;top:-1px;left:-1px;width:14px;height:14px;
+  border-top:1px solid var(--cyan);border-left:1px solid var(--cyan);
+}
+.card .n{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--chalk-dim);margin-bottom:9px;
+}
+.card h5{
+  font-family:var(--disp);font-size:21px;font-weight:600;text-transform:uppercase;
+  color:var(--chalk);margin:0 0 9px;line-height:1.05;letter-spacing:.01em;
+}
+.card p{margin:0;font-size:14px;line-height:1.6;max-width:none}
+.card p + p{margin-top:10px}
+.card.rose::before{border-color:var(--rose)}
+.card.rose .n{color:var(--rose)}
+.card.mint::before{border-color:var(--mint)}
+.card.mint .n{color:var(--mint)}
+.card.amber::before{border-color:var(--amber)}
+.card.amber .n{color:var(--amber)}
+
+/* ---------- figure ---------- */
+figure{
+  margin:36px 0;border:1px solid var(--line);background:rgba(7,21,35,.7);padding:26px 22px 18px;
+}
+figure svg{width:100%;height:auto;display:block}
+figcaption{
+  font-family:var(--mono);font-size:11px;color:var(--chalk-dim);letter-spacing:.08em;
+  margin-top:18px;padding-top:12px;border-top:1px solid var(--line);line-height:1.65;
+}
+figcaption b{color:var(--chalk-soft);font-weight:400}
+.fig-two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* ---------- ladder (algorithm) ---------- */
+.ladder{counter-reset:st;margin:26px 0;border-left:1px solid var(--line-hi);padding-left:0}
+.step{
+  display:grid;grid-template-columns:48px 1fr;gap:0;
+  border-bottom:1px solid var(--line);
+}
+.step:last-child{border-bottom:none}
+.step .sn{
+  font-family:var(--mono);font-size:11px;color:var(--cyan);padding:16px 0 16px 14px;
+  border-right:1px solid var(--line);
+}
+.step .sb{padding:15px 0 16px 18px}
+.step .sb b{color:var(--chalk);font-weight:500;display:block;margin-bottom:3px;font-size:15px}
+.step .sb span{font-size:14px;line-height:1.6;display:block}
+.step.no .sn{color:var(--rose)}
+.step.yes .sn{color:var(--mint)}
+.step .tagx{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--rose);border:1px solid rgba(255,138,114,.35);padding:2px 7px;
+  display:inline-block;margin-left:8px;vertical-align:2px;
+}
+.step .tagx.ok{color:var(--mint);border-color:rgba(111,224,176,.35)}
+
+/* ---------- tables ---------- */
+table{width:100%;border-collapse:collapse;margin:26px 0;font-size:14px}
+th{
+  text-align:left;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--chalk-dim);font-weight:400;
+  padding:10px 13px;border-bottom:1px solid var(--line-hi);background:rgba(16,42,68,.5);
+}
+td{padding:13px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.6}
+tr:hover td{background:rgba(16,42,68,.35)}
+td.k{color:var(--chalk);font-weight:500}
+td.mono{font-family:var(--mono);font-size:12.5px;white-space:nowrap;color:var(--chalk-soft)}
+.pill{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  padding:3px 8px;border:1px solid;white-space:nowrap;display:inline-block;
+}
+.p-cfg{color:var(--mint);border-color:rgba(111,224,176,.4)}
+.p-mod{color:var(--rose);border-color:rgba(255,138,114,.4)}
+.p-std{color:var(--cyan);border-color:rgba(84,210,240,.4)}
+.p-man{color:var(--amber);border-color:rgba(255,196,107,.4)}
+
+/* ---------- note ---------- */
+.note{
+  border:1px solid rgba(255,196,107,.28);border-left:3px solid var(--amber);
+  background:rgba(255,196,107,.05);padding:16px 20px;margin:26px 0;font-size:14.5px;
+}
+.note b{color:var(--amber);font-weight:500}
+.note p{margin:0;max-width:none}
+.note p + p{margin-top:9px}
+.note.cy{border-color:rgba(84,210,240,.28);border-left-color:var(--cyan);background:rgba(84,210,240,.05)}
+.note.cy b{color:var(--cyan)}
+
+/* ---------- code ---------- */
+pre{
+  font-family:var(--mono);font-size:12.5px;line-height:1.75;background:rgba(7,21,35,.8);
+  border:1px solid var(--line);border-left:3px solid var(--violet);
+  padding:18px 20px;overflow-x:auto;color:var(--chalk-soft);margin:24px 0;font-weight:300;
+}
+pre .c{color:var(--chalk-dim)}
+pre .kw{color:var(--violet)}
+pre .s{color:var(--mint)}
+
+/* ---------- footer ---------- */
+footer{
+  margin-top:96px;padding-top:24px;border-top:2px solid var(--cyan);
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--chalk-dim);
+}
+footer a{color:var(--cyan);text-decoration:none;border-bottom:1px solid var(--cyan)}
+
+@media(max-width:900px){
+  .cards,.cards.two{grid-template-columns:1fr}
+  .plate{grid-template-columns:repeat(2,1fr)}
+  .fig-two{grid-template-columns:1fr}
+  .wrap{padding:0 18px 80px}
+}
+@media print{
+  body{background:#fff;color:#111;background-image:none}
+  h1,h2,h3,.card h5,td.k,strong{color:#000}
+  .card,figure,table,pre{border-color:#ccc;background:#fff}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="rule"></div>
+  <p class="kicker">logistic-node.odoo.com · saas~19.4 · разбор</p>
+  <h1>Схема<span class="lt">решения</span></h1>
+  <p class="dek">Что именно не умеет штатная Odoo 19, когда складов становится восемь, и как это оказалось возможно закрыть настройкой, не трогая исходники. <b>Документ объясняет «почему», а не «куда нажать»</b> — за «куда нажать» отвечает прогонный лист.</p>
+
+  <div class="plate">
+    <div><dt>Узлов в сети</dt><dd>8<small>2 хаба, 6 магазинов</small></dd></div>
+    <div><dt>Процессов разобрано</dt><dd>9<small>4 закрыто настройкой</small></dd></div>
+    <div><dt>Строк кода в ядре</dt><dd>0<small>только поля и действия</small></dd></div>
+    <div><dt>Осталось на модуль</dt><dd>5<small>честные ограничения</small></dd></div>
+  </div>
+
+  <nav class="toc">
+    <a href="#task"><b>00</b>Задача</a>
+    <a href="#gap"><b>01</b>Где ломается</a>
+    <a href="#idea"><b>02</b>Идея</a>
+    <a href="#model"><b>03</b>Модель данных</a>
+    <a href="#algo"><b>04</b>Алгоритмы</a>
+    <a href="#limits"><b>05</b>Ограничения</a>
+    <a href="#border"><b>06</b>Граница</a>
+    <a href="#check"><b>07</b>Как проверить</a>
+  </nav>
+</header>
+
+<!-- ═══════════════ 00 ═══════════════ -->
+<section id="task">
+  <div class="sec-head"><span class="sec-num">00 / ЗАДАЧА</span><h2>Что вообще требуется</h2></div>
+  <p class="lede">Есть сеть из восьми складов: два хаба и шесть магазинов. Товар едет с хаба в магазин через транзит. Пока всё идёт по плану, Odoo справляется идеально. Вопрос в том, <em>что происходит, когда план ломается</em>.</p>
+
+  <p>Ломается он тремя способами, и все три — обыденные:</p>
+
+  <div class="cards">
+    <div class="card rose">
+      <div class="n">Сбой первого рода</div>
+      <h5>У привычного источника пусто</h5>
+      <p>Магазин всегда берёт с центрального склада. Сегодня на центральном не хватает — но на резервном лежит. Кто-то должен заметить и переключить.</p>
+    </div>
+    <div class="card rose">
+      <div class="n">Сбой второго рода</div>
+      <h5>У соседа завал</h5>
+      <p>Одному магазину не хватает, соседнему — девать некуда. Везти от хаба дороже и дольше, чем перекинуть между магазинами. Но никто не знает, у кого излишек.</p>
+    </div>
+    <div class="card rose">
+      <div class="n">Сбой третьего рода</div>
+      <h5>Узел выпал целиком</h5>
+      <p>Склад встал: авария, инвентаризация, карантин. Все, кто с него кормился, должны за минуты переехать на резервный — и так же вернуться, когда узел поднимется.</p>
+    </div>
+  </div>
+
+  <p>Это не экзотика и не «хотелки». Это ровно то, ради чего распределённую сеть и строят: чтобы отказ одного плеча не останавливал продажи. И это ровно то место, где штатная Odoo молчит.</p>
+</section>
+
+<!-- ═══════════════ 01 ═══════════════ -->
+<section id="gap">
+  <div class="sec-head"><span class="sec-num">01 / ГДЕ ЛОМАЕТСЯ</span><h2>Граница проходит не там, где ждёшь</h2></div>
+  <p class="lede">Соблазнительно думать, что чего-то не хватает в логистике. Это не так. <em>Физику Odoo закрывает полностью</em>: транзитные локации, двухногие маршруты, приёмки, батчи, сроки — всё собирается штатно и работает. Не хватает не перевозки. Не хватает <em>решения</em>.</p>
+
+  <figure>
+    <svg viewBox="0 0 900 470" role="img" aria-label="Топология сети: два хаба и шесть магазинов">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#54d2f0"/>
+        </marker>
+        <marker id="arm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#6fe0b0"/>
+        </marker>
+      </defs>
+
+      <!-- primary links WHA -> S1,S2,S3 -->
+      <g stroke="#54d2f0" stroke-width="1.4" opacity=".75">
+        <line x1="250" y1="112" x2="90" y2="286" marker-end="url(#ar)"/>
+        <line x1="250" y1="112" x2="230" y2="286" marker-end="url(#ar)"/>
+        <line x1="250" y1="112" x2="370" y2="286" marker-end="url(#ar)"/>
+      </g>
+      <!-- primary links WHB -> S4,S5,S6 -->
+      <g stroke="#54d2f0" stroke-width="1.4" opacity=".75">
+        <line x1="650" y1="112" x2="510" y2="286" marker-end="url(#ar)"/>
+        <line x1="650" y1="112" x2="650" y2="286" marker-end="url(#ar)"/>
+        <line x1="650" y1="112" x2="790" y2="286" marker-end="url(#ar)"/>
+      </g>
+      <!-- secondary (fallback) links, dashed -->
+      <g stroke="#6d879f" stroke-width="1" stroke-dasharray="4 5" opacity=".55">
+        <line x1="650" y1="112" x2="90" y2="286"/>
+        <line x1="650" y1="112" x2="230" y2="286"/>
+        <line x1="650" y1="112" x2="370" y2="286"/>
+        <line x1="250" y1="112" x2="510" y2="286"/>
+        <line x1="250" y1="112" x2="650" y2="286"/>
+        <line x1="250" y1="112" x2="790" y2="286"/>
+      </g>
+      <!-- hub to hub -->
+      <line x1="322" y1="82" x2="578" y2="82" stroke="#54d2f0" stroke-width="1.2" stroke-dasharray="7 4" opacity=".6"/>
+      <text x="450" y="74" text-anchor="middle" fill="#54d2f0" font-family="Azeret Mono, monospace" font-size="10" letter-spacing="1.5">FAILOVER</text>
+
+      <!-- lateral arc S6 -> S1 -->
+      <path d="M 790 332 Q 440 442 90 332" fill="none" stroke="#6fe0b0" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arm)"/>
+      <text x="440" y="424" text-anchor="middle" fill="#6fe0b0" font-family="Azeret Mono, monospace" font-size="10" letter-spacing="1.5">ЛАТЕРАЛЬНАЯ ПЕРЕБРОСКА</text>
+
+      <!-- hubs -->
+      <g font-family="Antonio, sans-serif">
+        <rect x="185" y="56" width="130" height="56" fill="#102a44" stroke="#54d2f0" stroke-width="1.4"/>
+        <text x="250" y="86" text-anchor="middle" fill="#e4eefb" font-size="24" font-weight="600">WH-A</text>
+        <text x="250" y="103" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="9" letter-spacing="1.4">ЦЕНТРАЛЬНЫЙ</text>
+
+        <rect x="585" y="56" width="130" height="56" fill="#102a44" stroke="#54d2f0" stroke-width="1.4"/>
+        <text x="650" y="86" text-anchor="middle" fill="#e4eefb" font-size="24" font-weight="600">WH-B</text>
+        <text x="650" y="103" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="9" letter-spacing="1.4">РЕЗЕРВНЫЙ</text>
+      </g>
+
+      <!-- stores -->
+      <g font-family="Antonio, sans-serif">
+        <rect x="45" y="286" width="90" height="46" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+        <text x="90" y="310" text-anchor="middle" fill="#e4eefb" font-size="19" font-weight="600">S1</text>
+        <text x="90" y="325" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="8">ПОДОЛ</text>
+
+        <rect x="185" y="286" width="90" height="46" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+        <text x="230" y="310" text-anchor="middle" fill="#e4eefb" font-size="19" font-weight="600">S2</text>
+        <text x="230" y="325" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="8">ОБОЛОНЬ</text>
+
+        <rect x="325" y="286" width="90" height="46" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+        <text x="370" y="310" text-anchor="middle" fill="#e4eefb" font-size="19" font-weight="600">S3</text>
+        <text x="370" y="325" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="8">ТРОЕЩИНА</text>
+
+        <rect x="465" y="286" width="90" height="46" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+        <text x="510" y="310" text-anchor="middle" fill="#e4eefb" font-size="19" font-weight="600">S4</text>
+        <text x="510" y="325" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="8">ЛЬВОВ</text>
+
+        <rect x="605" y="286" width="90" height="46" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+        <text x="650" y="310" text-anchor="middle" fill="#e4eefb" font-size="19" font-weight="600">S5</text>
+        <text x="650" y="325" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="8">ОДЕССА</text>
+
+        <rect x="745" y="286" width="90" height="46" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+        <text x="790" y="310" text-anchor="middle" fill="#e4eefb" font-size="19" font-weight="600">S6</text>
+        <text x="790" y="325" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="8">ДНЕПР</text>
+      </g>
+
+      <!-- legend -->
+      <g font-family="Azeret Mono, monospace" font-size="9.5" letter-spacing="1">
+        <line x1="45" y1="20" x2="75" y2="20" stroke="#54d2f0" stroke-width="1.4"/>
+        <text x="84" y="24" fill="#a9c2dc">основной источник</text>
+        <line x1="240" y1="20" x2="270" y2="20" stroke="#6d879f" stroke-width="1" stroke-dasharray="4 5"/>
+        <text x="279" y="24" fill="#a9c2dc">запасной, если у первого не хватает</text>
+      </g>
+    </svg>
+    <figcaption><b>Топология стенда.</b> Маршруты собраны полной сеткой 8×8 — 56 штук, каждый через свою транзитную локацию. Физически товар может поехать откуда угодно куда угодно. Сплошные стрелки — кто чей источник по умолчанию; пунктир — кто подхватит, если у первого не хватит. Именно этого пунктира в Odoo и нет как понятия.</figcaption>
+  </figure>
+
+  <h3>Три дырки, к которым всё сводится</h3>
+
+  <div class="cards">
+    <div class="card rose">
+      <div class="n">Дырка 01</div>
+      <h5>Склад не знает, жив ли он</h5>
+      <p>В модели <code>stock.warehouse</code> нет признака состояния. Есть только «активен / в архиве», и архивировать склад с ненулевым остатком Odoo запрещает дословно — проверено на стенде.</p>
+      <p>То есть выключить узел из сети штатно <strong>нечем</strong>: единственный выключатель заблокирован ровно в той ситуации, ради которой он нужен.</p>
+    </div>
+    <div class="card rose">
+      <div class="n">Дырка 02</div>
+      <h5>Правило знает один источник</h5>
+      <p>Правило пополнения (<code>orderpoint</code>) хранит <code>route_id</code> — ровно одну ссылку. Один маршрут — один поставщик. Списка приоритетов нет, запасного источника нет, условия «если у первого пусто» нет.</p>
+      <p>Odoo выполнит правило буквально: закажет с указанного склада, даже если там ноль, и будет ждать.</p>
+    </div>
+    <div class="card rose">
+      <div class="n">Дырка 03</div>
+      <h5>Нет понятия «излишек»</h5>
+      <p>Система знает остаток каждого склада, но не знает, <strong>сколько ему самому надо</strong>, а сколько лишнее. Без этого нельзя ответить на вопрос «у кого можно забрать, не навредив».</p>
+      <p>Значит, латеральная переброска между магазинами невозможна как автоматика — только как ручное решение человека, который держит цифры в голове.</p>
+    </div>
+  </div>
+
+  <h3>Сколько это стоит вручную</h3>
+  <p>Пока склада три, дырки не видно: кладовщик просто помнит, что и откуда. На восьми узлах и двадцати позициях это уже 160 правил пополнения. Вывод одного хаба из сети означает вручную переставить маршрут у <strong>60 правил шести магазинов</strong>, а потом ещё приглушить <strong>20 собственных правил</strong> мёртвого склада, чтобы он не заказывал товар сам себе.</p>
+
+  <div class="note">
+    <p><b>Замер на стенде.</b> Ручной failover одного узла — примерно <strong>70–115 действий</strong> оператора в шести разных меню, и это при условии, что он ни разу не ошибётся и ничего не забудет. Обратная операция — столько же, плюс нужно откуда-то знать, какой маршрут у каждого правила был <em>до</em> переключения. Этого нигде не записано.</p>
+    <p>Необратимость здесь хуже трудоёмкости. Переключить можно; вернуть точно как было — уже нет.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 02 ═══════════════ -->
+<section id="idea">
+  <div class="sec-head"><span class="sec-num">02 / ИДЕЯ</span><h2>Одна точка, а не три подсистемы</h2></div>
+
+  <p class="lede">Первым побуждением было писать модуль: своя модель сети, свой планировщик, свои стратегии снабжения. Это месяцы. Но если посмотреть на три сбоя внимательно, видно, что все они упираются <em>в одно и то же поле</em>.</p>
+
+  <div class="pull">
+    <p>Кто решает, откуда приедет товар? Тот, кто записал маршрут в правило</p>
+    <div class="sub">Каскад источников, латеральная переброска и failover узла — это не три разные задачи. Это три разных <strong>повода</strong> сделать одно и то же действие: пересчитать, какой маршрут должен стоять в <code>orderpoint.route_id</code>, и записать его туда. Дальше штатный планировщик Odoo сам создаст перемещение, транзит и приёмку — он это умеет безупречно.</div>
+  </div>
+
+  <p>Как только задача сформулирована так, она перестаёт быть архитектурной. Не нужно подменять снабжение — нужно <strong>перенацеливать правило</strong> до того, как снабжение отработает. А для этого хватает трёх вещей:</p>
+
+  <div class="cards">
+    <div class="card mint">
+      <div class="n">Компонент 01</div>
+      <h5>Паспорт узла</h5>
+      <p>Три поля на складе: состояние, резервный узел, очередь источников. Это те знания о сети, которых в модели не было.</p>
+    </div>
+    <div class="card mint">
+      <div class="n">Компонент 02</div>
+      <h5>Память правила</h5>
+      <p>Три поля на правиле: маршрут до failover, маршрут до латерала, метка приглушения. Без памяти любое переключение необратимо.</p>
+    </div>
+    <div class="card mint">
+      <div class="n">Компонент 03</div>
+      <h5>Пять действий</h5>
+      <p>Серверные действия в шестерёнке: вывести узел, вернуть узел, каскад, найти донора, отменить латерал. Каждое — кнопка, доступная кладовщику.</p>
+    </div>
+  </div>
+
+  <div class="note cy">
+    <p><b>Почему это вообще получилось без кода.</b> В saas~19.4 не установлены ни Studio, ни модуль автоматизаций. Зато <code>ir.actions.server</code> с питоновским кодом работает штатно — в базе их уже 211 от самой Odoo, — и пользовательские поля <code>x_*</code> создаются через интерфейс. Этого набора хватило ровно впритык.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 03 ═══════════════ -->
+<section id="model">
+  <div class="sec-head"><span class="sec-num">03 / МОДЕЛЬ ДАННЫХ</span><h2>Шесть полей, на которых всё держится</h2></div>
+  <p class="lede">Ни одно из них не считается автоматически — все заполняет человек или действие. Это осознанно: <em>сеть должна быть описана явно</em>, а не выведена из догадок.</p>
+
+  <h3>На складе — кто ты в сети</h3>
+  <table>
+    <thead><tr><th style="width:230px">Поле</th><th style="width:170px">Подпись на форме</th><th>Что означает и почему без него нельзя</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">x_node_state</td>
+        <td class="k">Состояние узла</td>
+        <td><strong>Доступен / Ограничен / Выведен.</strong> Замена архивированию, которое заблокировано при остатке. Среднее значение не декорация: «ограниченный» узел не выбирается ни донором, ни резервом, но уже назначенные на него правила с места не срываются — это режим планового вывода, когда склад доезжает начатое.</td>
+      </tr>
+      <tr>
+        <td class="mono">x_failover_to</td>
+        <td class="k">Резервный узел</td>
+        <td><strong>Кто подхватит нагрузку.</strong> Заполнен только у хабов, замкнуто: WH-A ↔ WH-B. У магазинов пуст, и это правильно — магазин никто не подменяет, у него меняется поставщик.</td>
+      </tr>
+      <tr>
+        <td class="mono">x_source_priority</td>
+        <td class="k">Приоритет источников</td>
+        <td><strong>Очередь доноров через запятую</strong>, например <code>WHA,WHB</code>. Обычный текст, а не связь — сознательное упрощение: порядок важнее ссылочной целостности, а редактировать строку кладовщик может без обучения. У киевских магазинов <code>WHA,WHB</code>, у региональных <code>WHB,WHA</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>На правиле — что с тобой сделали</h3>
+  <table>
+    <thead><tr><th style="width:230px">Поле</th><th style="width:170px">Где видно</th><th>Зачем</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">x_route_before_failover</td>
+        <td class="k">Колонка в списке<br><span style="color:var(--chalk-dim);font-weight:300;font-size:13px">скрыта по умолчанию</span></td>
+        <td>Маршрут, который стоял <em>до</em> вывода узла. Возврат идёт строго по этой записи, а не по догадке «наверное, был центральный». Без неё round-trip невозможен в принципе.</td>
+      </tr>
+      <tr>
+        <td class="mono">x_route_before_lateral</td>
+        <td class="k">Колонка в списке</td>
+        <td>То же для латеральной переброски — <strong>отдельным полем</strong>. Латераль может висеть одновременно с failover, и одно не должно затирать память другого.</td>
+      </tr>
+      <tr>
+        <td class="mono">x_muted_by_failover</td>
+        <td class="k">Колонка в списке</td>
+        <td>Метка «правило переведено в ручной режим потому, что его узел выведен». Без неё возврат не отличил бы приглушённые правила от тех, что оператор сам поставил на ручной — и вернул бы в авто лишнее.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <p><b>Почему память — два поля, а не одно.</b> Это тот случай, когда экономия на поле стоит корректности. Представьте: магазин S1 переброшен на донора S6 (латераль), и в этот момент выводится хаб WH-A. Если память одна, второе переключение затрёт первое, и после возврата узла правило останется на S6 навсегда — тихо, без единой ошибки в журнале.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 04 ═══════════════ -->
+<section id="algo">
+  <div class="sec-head"><span class="sec-num">04 / АЛГОРИТМЫ</span><h2>Что делает каждое действие</h2></div>
+  <p class="lede">Ниже — не пересказ, а фактическая логика того, что сейчас стоит на стенде. Если что-то в прогоне повело себя иначе, чем здесь написано, <em>расхождение стоит считать дефектом документа</em>, а не вашей ошибкой.</p>
+
+  <h3>Каскад источников <span style="font-family:var(--mono);font-size:13px;color:var(--chalk-dim);text-transform:none;letter-spacing:.1em">· действие 935</span></h3>
+  <p>Запускается на выделенных правилах пополнения из шестерёнки. Для каждого правила — по шагам, до первого совпадения:</p>
+
+  <div class="ladder">
+    <div class="step no"><div class="sn">01</div><div class="sb"><b>Есть ли дефицит<span class="tagx">нет → пропуск</span></b><span>Берётся <code>qty_to_order</code>. Ноль или меньше — правилу ничего не нужно, трогать нечего.</span></div></div>
+    <div class="step no"><div class="sn">02</div><div class="sb"><b>Межузловое ли правило<span class="tagx">нет → пропуск</span></b><span>Проверяется <code>route_id.supplier_wh_id</code>. Если у маршрута нет склада-поставщика — это закупка у внешнего вендора (<code>Buy</code>), и подменять её межскладским маршрутом нельзя.</span></div></div>
+    <div class="step"><div class="sn">03</div><div class="sb"><b>Читается очередь источников</b><span>Строка <code>x_source_priority</code> склада-получателя разбирается по запятой. Дальше — цикл по кодам в заданном порядке.</span></div></div>
+    <div class="step no"><div class="sn">04</div><div class="sb"><b>Узел существует и в строю<span class="tagx">нет → следующий</span></b><span>Нет склада с таким кодом — записывается «нет такого узла». Состояние не «доступен» — записывается «не в строю» с причиной.</span></div></div>
+    <div class="step no"><div class="sn">05</div><div class="sb"><b>Свободного остатка хватает<span class="tagx">нет → следующий</span></b><span>Читается <code>free_qty</code> в контексте этого склада. Свободный, а не физический: зарезервированное под другие заявки не считается. Меньше потребности — узел отсеивается с числами в отчёте.</span></div></div>
+    <div class="step no"><div class="sn">06</div><div class="sb"><b>Маршрут между узлами есть<span class="tagx">нет → следующий</span></b><span>Ищется маршрут с нужной парой «поставщик → получатель». На полной сетке он есть всегда, но проверка нужна для неполных топологий.</span></div></div>
+    <div class="step yes"><div class="sn">07</div><div class="sb"><b>Маршрут записывается, цикл обрывается<span class="tagx ok">готово</span></b><span>В правило пишется найденный маршрут, в отчёт — строка вида <code>S1 / UNV-01: WH-A → WHB (нужно 29, свободно 30)</code>. Первый подошедший побеждает — дальше очередь не просматривается.</span></div></div>
+  </div>
+
+  <div class="note cy">
+    <p><b>Ключевая проверка — шаг 02.</b> Её не было в первой версии, и ночной прогон это немедленно наказал: действие увидело у хабов заполненную очередь источников (она стоит там ради failover) и бодро подменило их закупочный маршрут <code>Buy</code> на межскладской. Хабы перестали закупать у поставщиков и начали заказывать товар друг у друга по кругу.</p>
+    <p>Урок общий: <strong>признак «правило межузловое» надо проверять явно</strong>, а не выводить из того, что у склада заполнен каскад.</p>
+  </div>
+
+  <h3>Латеральная переброска <span style="font-family:var(--mono);font-size:13px;color:var(--chalk-dim);text-transform:none;letter-spacing:.1em">· действия 936 / 937</span></h3>
+  <p>Ищет донора не среди хабов, а среди равных — соседних магазинов. Вся суть в одной формуле:</p>
+
+<pre><span class="c"># сколько у соседа реально лишнего</span>
+излишек = free_qty(<span class="s">склад-кандидат</span>) − product_max_qty(<span class="s">его собственное правило</span>)</pre>
+
+  <p>То есть «лишнее» — это не весь остаток, а только то, что <strong>выше его собственного максимума</strong>. Магазин, который сам стоит на грани, донором не станет, даже если у него на полке много.</p>
+
+  <div class="ladder">
+    <div class="step no"><div class="sn">01</div><div class="sb"><b>Хабы исключаются<span class="tagx">всегда</span></b><span>Любой склад, чей код есть в <code>x_source_priority</code> получателя, из кандидатов выбрасывается. Иначе латераль выродилась бы в обычное пополнение с хаба.</span></div></div>
+    <div class="step no"><div class="sn">02</div><div class="sb"><b>Не в строю — мимо<span class="tagx">пропуск</span></b><span>Кандидат со состоянием «ограничен» или «выведен» донором не назначается.</span></div></div>
+    <div class="step"><div class="sn">03</div><div class="sb"><b>Считается излишек каждого</b><span>По формуле выше. Все кандидаты с числами попадают в отчёт — включая отсеянных, чтобы было видно, <em>почему</em> выбран именно этот.</span></div></div>
+    <div class="step yes"><div class="sn">04</div><div class="sb"><b>Побеждает наибольший излишек<span class="tagx ok">один донор</span></b><span>Прежний маршрут уходит в <code>x_route_before_lateral</code>, правило переводится на донора. Действие 937 разворачивает это обратно.</span></div></div>
+  </div>
+
+  <h3>Failover узла <span style="font-family:var(--mono);font-size:13px;color:var(--chalk-dim);text-transform:none;letter-spacing:.1em">· действия 933 / 934</span></h3>
+  <p>Самое крупное по эффекту: одна кнопка на форме склада вместо семидесяти с лишним ручных правок.</p>
+
+  <div class="fig-two">
+    <figure style="margin:26px 0 0">
+      <svg viewBox="0 0 400 250" role="img" aria-label="До вывода узла">
+        <g font-family="Antonio, sans-serif">
+          <rect x="50" y="30" width="110" height="46" fill="#102a44" stroke="#54d2f0" stroke-width="1.4"/>
+          <text x="105" y="60" text-anchor="middle" fill="#e4eefb" font-size="20" font-weight="600">WH-A</text>
+          <rect x="240" y="30" width="110" height="46" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".28"/>
+          <text x="295" y="60" text-anchor="middle" fill="#6d879f" font-size="20" font-weight="600">WH-B</text>
+        </g>
+        <g stroke="#54d2f0" stroke-width="1.4" opacity=".8">
+          <line x1="105" y1="76" x2="60" y2="176"/>
+          <line x1="105" y1="76" x2="200" y2="176"/>
+          <line x1="105" y1="76" x2="340" y2="176"/>
+        </g>
+        <g font-family="Antonio, sans-serif">
+          <rect x="25" y="176" width="70" height="40" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+          <text x="60" y="203" text-anchor="middle" fill="#e4eefb" font-size="17" font-weight="600">S1</text>
+          <rect x="165" y="176" width="70" height="40" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+          <text x="200" y="203" text-anchor="middle" fill="#e4eefb" font-size="17" font-weight="600">…</text>
+          <rect x="305" y="176" width="70" height="40" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+          <text x="340" y="203" text-anchor="middle" fill="#e4eefb" font-size="17" font-weight="600">S6</text>
+        </g>
+        <text x="200" y="240" text-anchor="middle" fill="#54d2f0" font-family="Azeret Mono, monospace" font-size="10" letter-spacing="1.6">60 ПРАВИЛ СМОТРЯТ НА WH-A</text>
+        <text x="200" y="18" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="9.5" letter-spacing="2">ДО</text>
+      </svg>
+    </figure>
+    <figure style="margin:26px 0 0">
+      <svg viewBox="0 0 400 250" role="img" aria-label="После вывода узла">
+        <g font-family="Antonio, sans-serif">
+          <rect x="50" y="30" width="110" height="46" fill="#1a1620" stroke="#ff8a72" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <text x="105" y="60" text-anchor="middle" fill="#ff8a72" font-size="20" font-weight="600">WH-A</text>
+          <rect x="240" y="30" width="110" height="46" fill="#102a44" stroke="#6fe0b0" stroke-width="1.4"/>
+          <text x="295" y="60" text-anchor="middle" fill="#e4eefb" font-size="20" font-weight="600">WH-B</text>
+        </g>
+        <g stroke="#6fe0b0" stroke-width="1.4" opacity=".85">
+          <line x1="295" y1="76" x2="60" y2="176"/>
+          <line x1="295" y1="76" x2="200" y2="176"/>
+          <line x1="295" y1="76" x2="340" y2="176"/>
+        </g>
+        <g font-family="Antonio, sans-serif">
+          <rect x="25" y="176" width="70" height="40" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+          <text x="60" y="203" text-anchor="middle" fill="#e4eefb" font-size="17" font-weight="600">S1</text>
+          <rect x="165" y="176" width="70" height="40" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+          <text x="200" y="203" text-anchor="middle" fill="#e4eefb" font-size="17" font-weight="600">…</text>
+          <rect x="305" y="176" width="70" height="40" fill="#0c2036" stroke="#7dbeff" stroke-opacity=".3"/>
+          <text x="340" y="203" text-anchor="middle" fill="#e4eefb" font-size="17" font-weight="600">S6</text>
+        </g>
+        <text x="22" y="99" fill="#ff8a72" font-family="Azeret Mono, monospace" font-size="9" letter-spacing="1.4">ВЫВЕДЕН ИЗ СЕТИ</text>
+        <text x="22" y="114" fill="#ff8a72" font-family="Azeret Mono, monospace" font-size="9" letter-spacing="1.4" opacity=".75">20 ПРАВИЛ ПРИГЛУШЕНО</text>
+        <text x="200" y="240" text-anchor="middle" fill="#6fe0b0" font-family="Azeret Mono, monospace" font-size="10" letter-spacing="1.6">60 ИЗ 60 ПЕРЕКЛЮЧЕНЫ · МАРШРУТЫ ЗАПОМНЕНЫ</text>
+        <text x="200" y="18" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="9.5" letter-spacing="2">ПОСЛЕ</text>
+      </svg>
+    </figure>
+  </div>
+
+  <div class="ladder" style="margin-top:34px">
+    <div class="step no"><div class="sn">01</div><div class="sb"><b>Два отказа до начала работы<span class="tagx">строго</span></b><span>Нет резервного узла — действие отказывается. Резервный сам не «доступен» — тоже отказывается. Полумер нет: переводить нагрузку на второй лежащий склад хуже, чем не переводить вовсе.</span></div></div>
+    <div class="step"><div class="sn">02</div><div class="sb"><b>Собираются все, кто кормился от узла</b><span>Ищутся правила, у которых <code>route_id.supplier_wh_id</code> — выводимый склад. На стенде это 60 правил шести магазинов.</span></div></div>
+    <div class="step yes"><div class="sn">03</div><div class="sb"><b>Каждому — маршрут на резерв, прежний в память<span class="tagx ok">обратимо</span></b><span>Если маршрута «резерв → этот магазин» не существует, правило не трогается, а склад попадает в список «нет маршрута для…» в отчёте. Тихо пропустить нельзя.</span></div></div>
+    <div class="step"><div class="sn">04</div><div class="sb"><b>Собственные правила узла глушатся</b><span>Все правила самого выводимого склада переводятся с «авто» на «вручную» и помечаются <code>x_muted_by_failover</code>. Смысл житейский: мёртвый склад не должен заказывать себе товар.</span></div></div>
+    <div class="step"><div class="sn">05</div><div class="sb"><b>Состояние узла → «выведен»</b><span>Теперь его не выберет ни каскад, ни латераль: обе проверки смотрят на это поле.</span></div></div>
+    <div class="step yes"><div class="sn">06</div><div class="sb"><b>Возврат — зеркально и только по памяти<span class="tagx ok">действие 934</span></b><span>Действие 934 берёт правила, у которых заполнен <code>x_route_before_failover</code> и запомненный маршрут вёл именно на этот узел. Возвращает маршрут, чистит память, снимает приглушение, ставит состояние «доступен». Ни одной догадки.</span></div></div>
+  </div>
+
+  <div class="note cy">
+    <p><b>Проверено на стенде:</b> 60 из 60 правил переключены и 60 из 60 возвращены, распределение маршрутов после round-trip совпало с исходным до единицы — по 20 на маршрутах 33/40/47, 39 на <code>Buy</code>, всего 160. Обе колонки памяти после возврата пусты у всех 160 строк: ни одного осиротевшего значения.</p>
+  </div>
+
+  <h3>Ночной прогон <span style="font-family:var(--mono);font-size:13px;color:var(--chalk-dim);text-transform:none;letter-spacing:.1em">· крон 70</span></h3>
+  <p>Каскад сам по себе — ручная кнопка. Чтобы он работал без оператора, на него посажен <code>ir.cron</code>: ежедневно в 02:00 собирает правила с ненулевым дефицитом и прогоняет по ним каскад <strong>до</strong> того, как отработает штатный планировщик. Если дефицитов нет — пишет строку и ничего не трогает.</p>
+  <p>На время замеров крон снят с расписания намеренно: иначе он двигал бы стенд между прогонами, и сравнивать замеры было бы не с чем.</p>
+</section>
+
+<!-- ═══════════════ 05 ═══════════════ -->
+<section id="limits">
+  <div class="sec-head"><span class="sec-num">05 / ОГРАНИЧЕНИЯ</span><h2>Где у этого решения потолок</h2></div>
+  <p class="lede">Настройкой закрыты решения, но не все. Ниже — <em>честный список того, что решение не умеет</em>, с последствиями. Это не список багов: это граница жанра, и проходить её надо с открытыми глазами, а не обнаружить в проде.</p>
+
+  <table>
+    <thead><tr><th style="width:250px">Ограничение</th><th>Что это значит на практике</th><th style="width:130px">Чем закрывается</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="k">Один донор на правило</td>
+        <td>Действие выбирает <strong>единственный</strong> узел. Если нужно 30, а у одного соседа лишних 20 и у другого 15 — оно не сложит 20 + 10, а возьмёт того, у кого больше. Хуже того: выбранный донор может покрыть потребность <em>не полностью</em> — условие «излишек больше нуля» выполнено, а «излишка хватает» не проверяется.</td>
+        <td><span class="pill p-mod">модуль</span></td>
+      </tr>
+      <tr>
+        <td class="k">Каскад не резервирует</td>
+        <td>Самое коварное. Действие смотрит свободный остаток, но <strong>ничего не занимает</strong>. Если прогнать каскад по десяти правилам подряд, а у WH-A свободно ровно на одно, — все десять честно увидят «хватает» и все десять встанут на WH-A. Дефицит вскроется только когда планировщик создаст перемещения.</td>
+        <td><span class="pill p-mod">модуль</span></td>
+      </tr>
+      <tr>
+        <td class="k">Раз в сутки, а не по событию</td>
+        <td>Пересчёт источника происходит ночью по крону или когда оператор нажал кнопку. Продали последнюю штуку в 10:15 — источник переедет в 02:00 следующих суток. Реакции на событие нет.</td>
+        <td><span class="pill p-mod">модуль</span></td>
+      </tr>
+      <tr>
+        <td class="k">Расстояние не учитывается</td>
+        <td>Очередь источников — статичная строка, которую задал человек. Ни километров, ни стоимости доставки, ни фактического времени плеча в выборе не участвует. Донор с излишком 45 за 500 км победит донора с излишком 40 за углом.</td>
+        <td><span class="pill p-mod">модуль</span></td>
+      </tr>
+      <tr>
+        <td class="k">Документы не переезжают</td>
+        <td>Переключается <em>правило</em>, то есть будущие заявки. Уже созданные заказы и перемещения остаются на прежнем узле. Смена склада на подтверждённом заказе проходит, но отгрузка остаётся на старом складе — проверено.</td>
+        <td><span class="pill p-mod">модуль</span></td>
+      </tr>
+      <tr>
+        <td class="k">История не хранится</td>
+        <td>Результат приходит всплывающим окном и живёт до первого клика. Постоянный след остаётся только в техническом журнале, который не привязан ни к складу, ни к правилу и не виден рядовому пользователю. Ответить «кто и когда вывел узел» через полгода нечем.</td>
+        <td><span class="pill p-mod">модуль</span></td>
+      </tr>
+      <tr>
+        <td class="k">Заявки дробятся на документы</td>
+        <td>Одна потребность правила распадается на несколько документов. Причина структурная: модели <code>procurement.group</code> в saas~19.4 <strong>нет вообще</strong>, поле <code>group_id</code> убрано и с перемещения, и с документа. Прежним способом слить нечем — на эту роль остаются батчи, но это склейка на исполнении, а не единая заявка.</td>
+        <td><span class="pill p-std">батчи</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <p><b>Про количества — отдельно.</b> Дробление документов легко спутать с переордером, но это разные вещи. Проверено: четыре документа по одному правилу созданы <em>в одну секунду</em>, одним источником, с одним сроком; арифметика сходится точно. Дефект в форме, не в числах.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 06 ═══════════════ -->
+<section id="border">
+  <div class="sec-head"><span class="sec-num">06 / ГРАНИЦА</span><h2>Что закрыто, что осталось</h2></div>
+  <p class="lede">Девять процессов, по которым шёл разбор. Вердикт у каждого — <em>не мнение, а результат прогона на стенде</em>.</p>
+
+  <table>
+    <thead><tr><th style="width:36px">№</th><th style="width:250px">Процесс</th><th>Состояние</th><th style="width:120px">Вердикт</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">1</td><td class="k">Сеть узлов и маршруты</td><td>Полная сетка 8×8 через транзитные локации собирается штатно. Бонусом Odoo сама сливает отгрузки на разные магазины в один документ.</td><td><span class="pill p-std">штатно</span></td></tr>
+      <tr><td class="mono">2</td><td class="k">Состояние узла</td><td>Понятия в модели не было, архивирование с остатком заблокировано. Закрыто полями на форме склада — отключение узла больше не требует архивирования.</td><td><span class="pill p-cfg">настройка</span></td></tr>
+      <tr><td class="mono">3</td><td class="k">Пополнение по мин/макс</td><td>160 правил работают. Требуется ручной перевод в авто и осмысленный горизонт.</td><td><span class="pill p-man">вручную</span></td></tr>
+      <tr><td class="mono">4</td><td class="k">Переключение источника у точки</td><td>Массовая смена маршрута в списке правил работает — 7 действий на точку.</td><td><span class="pill p-man">вручную</span></td></tr>
+      <tr><td class="mono">5</td><td class="k">Каскад источников</td><td>Правило по-прежнему знает один источник; каскад надстроен действием и ночным кроном. При нужде 29 пропустил WH-A с 27 и выбрал WH-B с 30.</td><td><span class="pill p-cfg">настройка</span></td></tr>
+      <tr><td class="mono">6</td><td class="k">Исполнение переброски</td><td>Транзит, приёмка, батчи — штатно, оценки трудоёмкости реалистичны.</td><td><span class="pill p-man">вручную</span></td></tr>
+      <tr><td class="mono">7</td><td class="k">Выбор латерального донора</td><td>Маршрут между магазинами настраивается штатно; выбор донора закрыт действием. Нашёл S6 с излишком 45, отсеяв пять кандидатов с нулём.</td><td><span class="pill p-cfg">настройка</span></td></tr>
+      <tr><td class="mono">8</td><td class="k">Переадресация документов</td><td>Смена склада на подтверждённом заказе проходит, но отгрузка и приёмка остаются на старом узле. Правится только кодом в <code>stock</code>.</td><td><span class="pill p-mod">модуль</span></td></tr>
+      <tr><td class="mono">9</td><td class="k">Failover узла</td><td>Стал кнопкой. 60 правил шести магазинов переключены на резерв и возвращены в исходное состояние; 20 собственных правил узла приглушены.</td><td><span class="pill p-cfg">настройка</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="pull">
+    <p>Четыре процесса из девяти перешли из «нужен модуль» в «хватило настройки»</p>
+    <div class="sub">Это главный вывод разбора. Не «Odoo всё умеет» и не «без разработки никак», а вполне конкретная граница: <strong>решения о маршруте</strong> выражаются полями и действиями, а <strong>работа с уже созданными документами, событийность и история</strong> — нет.</div>
+  </div>
+</section>
+
+<!-- ═══════════════ 07 ═══════════════ -->
+<section id="check">
+  <div class="sec-head"><span class="sec-num">07 / КАК ПРОВЕРИТЬ</span><h2>Не верить на слово</h2></div>
+  <p class="lede">Всё описанное выше стоит на стенде живьём и проверяемо руками. Проверять лучше <em>от лица обычного пользователя</em>: режим разработчика нигде не нужен, все пять действий живут в шестерёнке и отвечают всплывающим окном на экран.</p>
+
+  <div class="cards two">
+    <div class="card mint">
+      <div class="n">Документ 01</div>
+      <h5>Прогонный лист</h5>
+      <p>Четырнадцать сценариев с посевом, шагами, ожидаемым результатом и откатом. Отметки сохраняются в браузере, итог выгружается текстом.</p>
+      <p style="margin-top:14px"><a class="lnk" href="testplan.html">Открыть прогонный лист →</a></p>
+    </div>
+    <div class="card mint">
+      <div class="n">Документ 02</div>
+      <h5>Отчёт по стенду</h5>
+      <p>Ревизия базы, топология, история спроса, матрица покрытия, перечень созданных объектов и список того, что осталось за границей настройки.</p>
+      <p style="margin-top:14px"><a class="lnk" href="index.html">Открыть отчёт →</a></p>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><b>Один нюанс перед прогоном.</b> Сценарии подобраны под точные числа на стенде: например, каскад имеет смысл проверять при потребности ровно 29, потому что у WH-A свободно 27, а у WH-B — 30. Если остатки на базе уже кто-то двигал, это окно схлопнется, и сценарий покажет не то. В прогонном листе есть раздел с исходными числами — сверьтесь с ним до начала.</p>
+  </div>
+</section>
+
+<footer>
+  <span>logistic-node.odoo.com · saas~19.4 · схема решения</span>
+  <span><a href="index.html">Отчёт</a> · <a href="testplan.html">Прогонный лист</a></span>
+  <span>разбор 9 процессов · 14.09.2026</span>
+</footer>
+
+</div>
+</body>
+</html>
