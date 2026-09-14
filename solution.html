@@ -283,11 +283,12 @@ footer a{color:var(--cyan);text-decoration:none;border-bottom:1px solid var(--cy
     <a href="#task"><b>00</b>Задача</a>
     <a href="#gap"><b>01</b>Где ломается</a>
     <a href="#idea"><b>02</b>Идея</a>
-    <a href="#model"><b>03</b>Модель данных</a>
-    <a href="#algo"><b>04</b>Алгоритмы</a>
-    <a href="#limits"><b>05</b>Ограничения</a>
-    <a href="#border"><b>06</b>Граница</a>
-    <a href="#check"><b>07</b>Как проверить</a>
+    <a href="#life"><b>03</b>Жизненный цикл узла</a>
+    <a href="#model"><b>04</b>Модель данных</a>
+    <a href="#algo"><b>05</b>Алгоритмы</a>
+    <a href="#limits"><b>06</b>Ограничения</a>
+    <a href="#border"><b>07</b>Граница</a>
+    <a href="#check"><b>08</b>Как проверить</a>
   </nav>
 </header>
 
@@ -482,8 +483,156 @@ footer a{color:var(--cyan);text-decoration:none;border-bottom:1px solid var(--cy
 </section>
 
 <!-- ═══════════════ 03 ═══════════════ -->
+<section id="life">
+  <div class="sec-head"><span class="sec-num">03 / ЖИЗНЕННЫЙ ЦИКЛ</span><h2>Что такое узел и что с ним бывает</h2></div>
+  <p class="lede">Без этого раздела дальнейшее читается как фокус. Кнопка «вывести узел» кажется всемогущей — а она намеренно делает мало. Понять, <em>где проходит граница её полномочий</em>, важнее, чем помнить порядок шагов.</p>
+
+  <h3>Склад — это не строка в справочнике</h3>
+  <p>Когда в Odoo создают склад, рождается не запись, а целое хозяйство. На стенде у WH-A это:</p>
+
+  <table>
+    <thead><tr><th style="width:230px">Что порождается</th><th>Сколько на WH-A</th><th>Почему это важно</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="k">Локации</td>
+        <td class="mono">WHA (вид)<br>WHA/Stock (внутренняя)</td>
+        <td>На них ссылается каждый остаток и каждая строка каждого перемещения за всю историю склада.</td>
+      </tr>
+      <tr>
+        <td class="k">Типы операций</td>
+        <td class="mono">WHA/IN/ · WHA/OUT/<br>WHA/INT/ · WHA/POS/</td>
+        <td>Четыре штуки, у каждого своя нумерация документов. Все приходы, отгрузки, внутренние перемещения и продажи в кассе привязаны к ним.</td>
+      </tr>
+      <tr>
+        <td class="k">Маршруты снабжения</td>
+        <td class="mono">7 штук<br><span style="color:var(--chalk-dim)">по числу узлов в Resupply From</span></td>
+        <td>Каждая галочка «пополнять отсюда» создаёт маршрут из <strong>двух</strong> правил: «склад → транзит» и «транзит → получатель». На всей сети это 56 маршрутов.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Отсюда следует то, что сбивает с толку всех, кто приходит из систем попроще: <strong>склад в Odoo нельзя удалить</strong>. За ним тянется хвост из локаций, типов операций, последовательностей, маршрутов и всех документов, которые на них ссылаются. Единственное, что с ним можно сделать штатно, — спрятать.</p>
+
+  <h3>Штатный цикл: два состояния и одна дверь</h3>
+  <p>Odoo знает про склад ровно две вещи: <code>active = true</code> и <code>active = false</code>. Активен или в архиве. Ни «временно недоступен», ни «выводится», ни «резерв» — этих понятий в модели нет.</p>
+
+  <div class="note">
+    <p><b>И даже эта единственная дверь заперта.</b> Архивировать склад с ненулевым остатком Odoo отказывается дословно — проверено на стенде. Логика разработчиков понятна: спрятать склад, на котором лежит товар, значит завести неучтённые запасы. Логика верная — но означает она вот что: <strong>штатного способа выключить работающий узел не существует вообще</strong>. Выключатель заблокирован ровно в той ситуации, ради которой он нужен.</p>
+  </div>
+
+  <h3>Цикл, который нужен на самом деле</h3>
+
+  <figure>
+    <svg viewBox="0 0 900 310" role="img" aria-label="Состояния узла и переходы между ними">
+      <defs>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#54d2f0"/></marker>
+        <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6fe0b0"/></marker>
+        <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6d879f"/></marker>
+      </defs>
+
+      <!-- arc: доступен -> выведен (авария) -->
+      <path d="M 115 118 Q 345 34 575 118" fill="none" stroke="#ff8a72" stroke-width="1.4" marker-end="url(#a2)" opacity=".9"/>
+      <text x="345" y="46" text-anchor="middle" fill="#ff8a72" font-family="Azeret Mono, monospace" font-size="10" letter-spacing="1.2">АВАРИЯ · СРАЗУ, ОДНОЙ КНОПКОЙ</text>
+
+      <!-- доступен -> ограничен -->
+      <line x1="204" y1="155" x2="264" y2="155" stroke="#54d2f0" stroke-width="1.4" marker-end="url(#a2)"/>
+      <!-- ограничен -> выведен -->
+      <line x1="444" y1="155" x2="504" y2="155" stroke="#54d2f0" stroke-width="1.4" marker-end="url(#a2)"/>
+      <!-- выведен -> архив -->
+      <line x1="684" y1="155" x2="744" y2="155" stroke="#6d879f" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#a4)"/>
+
+      <!-- return arc -->
+      <path d="M 575 192 Q 345 288 115 192" fill="none" stroke="#6fe0b0" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="345" y="280" text-anchor="middle" fill="#6fe0b0" font-family="Azeret Mono, monospace" font-size="10" letter-spacing="1.2">ДЕЙСТВИЕ 934 · СТРОГО ПО ЗАПОМНЕННЫМ МАРШРУТАМ</text>
+
+      <!-- boxes -->
+      <g font-family="Antonio, sans-serif">
+        <rect x="32" y="118" width="170" height="74" fill="#102a44" stroke="#6fe0b0" stroke-width="1.5"/>
+        <text x="117" y="152" text-anchor="middle" fill="#e4eefb" font-size="23" font-weight="600">ДОСТУПЕН</text>
+        <text x="117" y="172" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="8.5" letter-spacing="1">ДОНОР · РЕЗЕРВ · ИСТОЧНИК</text>
+
+        <rect x="272" y="118" width="170" height="74" fill="#102a44" stroke="#ffc46b" stroke-width="1.5"/>
+        <text x="357" y="152" text-anchor="middle" fill="#e4eefb" font-size="23" font-weight="600">ОГРАНИЧЕН</text>
+        <text x="357" y="172" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="8.5" letter-spacing="1">ДОЕЗЖАЕТ НАЧАТОЕ</text>
+
+        <rect x="512" y="118" width="170" height="74" fill="#1a1620" stroke="#ff8a72" stroke-width="1.5"/>
+        <text x="597" y="152" text-anchor="middle" fill="#e4eefb" font-size="23" font-weight="600">ВЫВЕДЕН</text>
+        <text x="597" y="172" text-anchor="middle" fill="#6d879f" font-family="Azeret Mono, monospace" font-size="8.5" letter-spacing="1">НАГРУЗКА НА РЕЗЕРВЕ</text>
+
+        <rect x="752" y="118" width="130" height="74" fill="#0a1722" stroke="#6d879f" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="817" y="152" text-anchor="middle" fill="#6d879f" font-size="23" font-weight="600">АРХИВ</text>
+        <text x="817" y="172" text-anchor="middle" fill="#57708a" font-family="Azeret Mono, monospace" font-size="8.5" letter-spacing="1">ВНЕ РЕШЕНИЯ</text>
+      </g>
+
+      <!-- transition labels -->
+      <g font-family="Azeret Mono, monospace" font-size="8.5" letter-spacing=".6" text-anchor="middle">
+        <text x="237" y="141" fill="#a9c2dc">ПЛАНОВО</text>
+        <text x="237" y="180" fill="#6d879f">вручную</text>
+        <text x="477" y="141" fill="#a9c2dc">ДЕЙСТВИЕ</text>
+        <text x="477" y="180" fill="#6d879f">933</text>
+        <text x="717" y="141" fill="#6d879f">РУЧНАЯ</text>
+        <text x="717" y="180" fill="#6d879f">процедура</text>
+      </g>
+    </svg>
+    <figcaption><b>Четыре состояния вместо двух.</b> Три первых — это поле <code>x_node_state</code>, четвёртое — штатный архив Odoo, до которого решение сознательно не доводит. Верхняя дуга — аварийный сценарий: из «доступен» сразу в «выведен», одной кнопкой. Нижняя — возврат, и он единственный, кто знает, куда именно возвращать.</figcaption>
+  </figure>
+
+  <p>Разница между «ограничен» и «выведен» — не в градусе тяжести, а в том, <strong>что происходит с уже назначенными правилами</strong>:</p>
+
+  <div class="cards two">
+    <div class="card amber">
+      <div class="n">Состояние · ограничен</div>
+      <h5>Плановый слив</h5>
+      <p>Узел перестаёт <em>выбираться</em>: каскад его пропустит, латераль не назначит донором, failover не возьмёт резервом. Но <strong>ничего не переключается</strong> — те, кто уже на нём сидит, так и сидят.</p>
+      <p>Это режим инвентаризации, переезда, сезонного закрытия: новое не назначаем, начатое доезжает. Ставится вручную, прямо в поле на форме.</p>
+    </div>
+    <div class="card rose">
+      <div class="n">Состояние · выведен</div>
+      <h5>Аварийный вывод</h5>
+      <p>Массовое переключение: все, кто кормился от узла, немедленно переезжают на резерв, прежние маршруты уходят в память, собственные правила узла глушатся.</p>
+      <p>Это реакция на аварию, и потому она одной кнопкой. Ставится действием 933, руками поле лучше не трогать — переключение не произойдёт, а состояние соврёт.</p>
+    </div>
+  </div>
+
+  <h3>Что кнопка не делает — и правильно</h3>
+  <p class="lede">Вот здесь обычно и возникает разрыв ожиданий. Действие 933 управляет <em>будущим спросом</em>, а не текущими обязательствами. Всё, что уже создано, оно принципиально не трогает.</p>
+
+  <table>
+    <thead><tr><th style="width:280px">Объект</th><th>Что с ним при выводе узла</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Правила пополнения потребителей<br><span style="color:var(--chalk-dim);font-weight:300;font-size:13px">60 штук на стенде</span></td><td><span class="pill p-cfg">переключены</span> &nbsp;На резервный узел, прежний маршрут записан в память.</td></tr>
+      <tr><td class="k">Собственные правила узла<br><span style="color:var(--chalk-dim);font-weight:300;font-size:13px">20 штук</span></td><td><span class="pill p-cfg">приглушены</span> &nbsp;Переведены в ручной режим и помечены. Мёртвый склад не заказывает себе товар.</td></tr>
+      <tr><td class="k">Физический остаток на складе</td><td><span class="pill p-man">не тронут</span> &nbsp;Как лежало 52 штуки UNV-01, так и лежит. Вывоз — отдельная работа людей, а не кнопки.</td></tr>
+      <tr><td class="k">Резервы под созданные заявки</td><td><span class="pill p-man">не сняты</span> &nbsp;Из тех же 52 штук 25 остаются зарезервированными. Свободно по-прежнему 27.</td></tr>
+      <tr><td class="k">Открытые документы<br><span style="color:var(--chalk-dim);font-weight:300;font-size:13px">13 незакрытых на WH-A сейчас</span></td><td><span class="pill p-man">не тронуты</span> &nbsp;Доедут по-старому. Отменять или переадресовывать их — решение человека.</td></tr>
+      <tr><td class="k">Локации, типы операций, нумерация</td><td><span class="pill p-std">живы</span> &nbsp;Склад продолжает существовать во всех смыслах, кроме одного: он больше не выбирается источником.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <p><b>Практическое следствие, к которому стоит подготовить кладовщика.</b> Сразу после переключения у магазина какое-то время идут <strong>два потока сразу</strong>: поставки, созданные до вывода, приезжают со старого узла, новые — с резервного. Выглядит как дубли, дублями не является.</p>
+    <p>И сроки поедут. На стенде плечо WH-A → S1 состоит из двух ног: «склад → транзит» с задержкой 0 и «транзит → магазин» с задержкой 1 день. У резервного узла плечо своё. Помните ловушку: <code>lead_days</code> правила показывает только последнюю ногу, а реальная длина цепочки — <strong>сумма обеих</strong>.</p>
+  </div>
+
+  <h3>Если узел закрывается навсегда</h3>
+  <p>Это другая задача, и решение её сознательно не делает. Аварийный вывод обратим по замыслу; окончательное закрытие — необратимо, и автоматизировать необратимое одной кнопкой не стоит. Порядок такой:</p>
+
+  <div class="ladder">
+    <div class="step"><div class="sn">01</div><div class="sb"><b>Перевести узел в «Ограничен»</b><span>Вручную, полем на форме. С этого момента новых назначений на него не будет, а начатое доедет.</span></div></div>
+    <div class="step"><div class="sn">02</div><div class="sb"><b>Довести до нуля открытые документы</b><span>Закрыть или отменить все незакрытые приходы и отгрузки. Пока они висят, склад держит резервы.</span></div></div>
+    <div class="step"><div class="sn">03</div><div class="sb"><b>Физически вывезти остаток</b><span>Внутренними перемещениями на другой узел, до нуля и по свободному, и по зарезервированному. Это работа людей на местах, не системы.</span></div></div>
+    <div class="step"><div class="sn">04</div><div class="sb"><b>Снять галочки «Resupply From»</b><span>У всех, кто с него кормился, — иначе маршруты останутся и будут предлагаться в выпадающих списках ещё годы.</span></div></div>
+    <div class="step yes"><div class="sn">05</div><div class="sb"><b>Только теперь архивировать<span class="tagx ok">Odoo пропустит</span></b><span>Остаток нулевой — штатная блокировка снята. Историю это не стирает: документы и остатки прошлых периодов остаются на месте, склад просто исчезает из выбора.</span></div></div>
+  </div>
+
+  <div class="note">
+    <p><b>Честно:</b> шаги 02–04 в решении не автоматизированы никак. Это ручная процедура, и её стоит записать в регламент отдельно — она выполняется раз в несколько лет, и к моменту, когда понадобится, её никто не вспомнит.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 04 ═══════════════ -->
 <section id="model">
-  <div class="sec-head"><span class="sec-num">03 / МОДЕЛЬ ДАННЫХ</span><h2>Шесть полей, на которых всё держится</h2></div>
+  <div class="sec-head"><span class="sec-num">04 / МОДЕЛЬ ДАННЫХ</span><h2>Шесть полей, на которых всё держится</h2></div>
   <p class="lede">Ни одно из них не считается автоматически — все заполняет человек или действие. Это осознанно: <em>сеть должна быть описана явно</em>, а не выведена из догадок.</p>
 
   <h3>На складе — кто ты в сети</h3>
@@ -535,9 +684,9 @@ footer a{color:var(--cyan);text-decoration:none;border-bottom:1px solid var(--cy
   </div>
 </section>
 
-<!-- ═══════════════ 04 ═══════════════ -->
+<!-- ═══════════════ 05 ═══════════════ -->
 <section id="algo">
-  <div class="sec-head"><span class="sec-num">04 / АЛГОРИТМЫ</span><h2>Что делает каждое действие</h2></div>
+  <div class="sec-head"><span class="sec-num">05 / АЛГОРИТМЫ</span><h2>Что делает каждое действие</h2></div>
   <p class="lede">Ниже — не пересказ, а фактическая логика того, что сейчас стоит на стенде. Если что-то в прогоне повело себя иначе, чем здесь написано, <em>расхождение стоит считать дефектом документа</em>, а не вашей ошибкой.</p>
 
   <h3>Каскад источников <span style="font-family:var(--mono);font-size:13px;color:var(--chalk-dim);text-transform:none;letter-spacing:.1em">· действие 935</span></h3>
@@ -649,9 +798,9 @@ footer a{color:var(--cyan);text-decoration:none;border-bottom:1px solid var(--cy
   <p>На время замеров крон снят с расписания намеренно: иначе он двигал бы стенд между прогонами, и сравнивать замеры было бы не с чем.</p>
 </section>
 
-<!-- ═══════════════ 05 ═══════════════ -->
+<!-- ═══════════════ 06 ═══════════════ -->
 <section id="limits">
-  <div class="sec-head"><span class="sec-num">05 / ОГРАНИЧЕНИЯ</span><h2>Где у этого решения потолок</h2></div>
+  <div class="sec-head"><span class="sec-num">06 / ОГРАНИЧЕНИЯ</span><h2>Где у этого решения потолок</h2></div>
   <p class="lede">Настройкой закрыты решения, но не все. Ниже — <em>честный список того, что решение не умеет</em>, с последствиями. Это не список багов: это граница жанра, и проходить её надо с открытыми глазами, а не обнаружить в проде.</p>
 
   <table>
@@ -700,9 +849,9 @@ footer a{color:var(--cyan);text-decoration:none;border-bottom:1px solid var(--cy
   </div>
 </section>
 
-<!-- ═══════════════ 06 ═══════════════ -->
+<!-- ═══════════════ 07 ═══════════════ -->
 <section id="border">
-  <div class="sec-head"><span class="sec-num">06 / ГРАНИЦА</span><h2>Что закрыто, что осталось</h2></div>
+  <div class="sec-head"><span class="sec-num">07 / ГРАНИЦА</span><h2>Что закрыто, что осталось</h2></div>
   <p class="lede">Девять процессов, по которым шёл разбор. Вердикт у каждого — <em>не мнение, а результат прогона на стенде</em>.</p>
 
   <table>
@@ -726,9 +875,9 @@ footer a{color:var(--cyan);text-decoration:none;border-bottom:1px solid var(--cy
   </div>
 </section>
 
-<!-- ═══════════════ 07 ═══════════════ -->
+<!-- ═══════════════ 08 ═══════════════ -->
 <section id="check">
-  <div class="sec-head"><span class="sec-num">07 / КАК ПРОВЕРИТЬ</span><h2>Не верить на слово</h2></div>
+  <div class="sec-head"><span class="sec-num">08 / КАК ПРОВЕРИТЬ</span><h2>Не верить на слово</h2></div>
   <p class="lede">Всё описанное выше стоит на стенде живьём и проверяемо руками. Проверять лучше <em>от лица обычного пользователя</em>: режим разработчика нигде не нужен, все пять действий живут в шестерёнке и отвечают всплывающим окном на экран.</p>
 
   <div class="cards two">
