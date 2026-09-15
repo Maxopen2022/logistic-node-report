@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Стенд logistic-node — прогон по кнопкам</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#fdf4e0;
+  --cream-2:#f7e8c8;
+  --ink:#171310;
+  --ink-2:#5c5248;
+  --red:#e2372a;
+  --sun:#ffc531;
+  --sky:#2a63e8;
+  --grass:#11914f;
+  --violet:#7b3fc4;
+  --line:3px solid var(--ink);
+  --disp:"Unbounded",system-ui,sans-serif;
+  --body:"Golos Text",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--cream);color:var(--ink);
+  font-family:var(--body);font-size:17px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(23,19,16,.10) 1px, transparent 0);
+  background-size:26px 26px;
+}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 120px}
+
+/* ---------- progress ---------- */
+.bar{
+  position:sticky;top:0;z-index:50;background:var(--cream);
+  border-bottom:var(--line);padding:10px 20px;
+  display:flex;align-items:center;gap:14px;
+}
+.bar .track{flex:1;height:16px;background:#fff;border:var(--line);border-radius:99px;overflow:hidden}
+.bar .fill{height:100%;width:0%;background:var(--grass);transition:width .35s cubic-bezier(.2,.9,.25,1)}
+.bar .pct{font-family:var(--mono);font-weight:600;font-size:14px;min-width:96px;text-align:right}
+.bar button{
+  font-family:var(--body);font-weight:600;font-size:13px;cursor:pointer;
+  background:#fff;border:var(--line);border-radius:99px;padding:5px 14px;
+}
+.bar button:hover{background:var(--sun)}
+
+/* ---------- header ---------- */
+header.top{padding:54px 0 40px}
+.eyebrow{
+  display:inline-block;font-family:var(--mono);font-size:12px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;background:var(--sun);
+  border:var(--line);border-radius:99px;padding:6px 16px;
+  box-shadow:5px 5px 0 var(--ink);margin-bottom:26px;transform:rotate(-1.2deg);
+}
+h1{
+  font-family:var(--disp);font-weight:900;font-size:clamp(38px,8vw,76px);
+  line-height:.95;letter-spacing:-.03em;margin:0 0 20px;
+}
+h1 span{color:var(--red)}
+.lede{font-size:20px;max-width:56ch;color:var(--ink-2);margin:0 0 28px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{
+  font-family:var(--mono);font-size:13px;background:#fff;border:var(--line);
+  border-radius:12px;padding:6px 12px;box-shadow:3px 3px 0 var(--ink);
+}
+
+/* ---------- blocks ---------- */
+.panel{
+  background:#fff;border:var(--line);border-radius:22px;
+  box-shadow:8px 8px 0 var(--ink);padding:26px 26px 22px;margin:26px 0;
+}
+.panel.sun{background:var(--sun)}
+.panel.cream{background:var(--cream-2)}
+.panel h3{font-family:var(--disp);font-weight:700;font-size:20px;margin:0 0 12px;letter-spacing:-.02em}
+.panel ul,.panel ol{margin:0;padding-left:22px}
+.panel li{margin:7px 0}
+
+section.act{padding:40px 0 0}
+.act-head{
+  border:var(--line);border-radius:22px;padding:22px 24px;
+  box-shadow:8px 8px 0 var(--ink);margin-bottom:8px;color:#fff;
+}
+.act-1 .act-head{background:var(--red)}
+.act-2 .act-head{background:var(--sky)}
+.act-3 .act-head{background:var(--grass)}
+.act-0 .act-head{background:var(--violet)}
+.act-head .num{
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;opacity:.85;
+}
+.act-head h2{font-family:var(--disp);font-weight:900;font-size:clamp(26px,5vw,40px);margin:6px 0 10px;letter-spacing:-.03em;line-height:1.02}
+.act-head p{margin:0;font-size:16px;opacity:.95;max-width:52ch}
+
+/* ---------- step ---------- */
+.step{
+  display:grid;grid-template-columns:58px 1fr;gap:18px;
+  background:#fff;border:var(--line);border-radius:20px;
+  box-shadow:6px 6px 0 var(--ink);padding:20px 22px;margin:18px 0;
+  transition:transform .18s ease, box-shadow .18s ease, opacity .25s ease;
+}
+.step:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--ink)}
+.step.done{opacity:.55;background:var(--cream-2)}
+.step.done .stepno{background:var(--grass);color:#fff}
+.stepno{
+  width:58px;height:58px;border:var(--line);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-weight:900;font-size:24px;background:var(--sun);
+}
+.step h4{font-family:var(--disp);font-weight:700;font-size:19px;margin:6px 0 12px;letter-spacing:-.02em;line-height:1.2}
+.path{
+  font-family:var(--mono);font-size:13.5px;background:var(--cream);
+  border:2px dashed var(--ink);border-radius:12px;padding:9px 13px;margin:0 0 12px;
+  word-break:break-word;
+}
+.path b{background:var(--sun);padding:1px 4px;border-radius:4px}
+.do{margin:0 0 14px}
+.do b{background:var(--sun);padding:1px 5px;border-radius:5px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+kbd{
+  font-family:var(--mono);font-size:13px;background:var(--ink);color:var(--cream);
+  padding:2px 8px;border-radius:6px;
+}
+
+.verdicts{display:grid;gap:10px;margin-top:6px}
+.v{border:var(--line);border-radius:14px;padding:12px 14px 12px 46px;position:relative;font-size:15.5px}
+.v::before{
+  position:absolute;left:12px;top:11px;font-size:20px;line-height:1;
+}
+.v.ok{background:#e4f7ec;border-color:var(--grass)}
+.v.ok::before{content:"✅"}
+.v.no{background:#ffe9e6;border-color:var(--red)}
+.v.no::before{content:"❌"}
+.v b{font-weight:700}
+.v .quote{
+  display:block;font-family:var(--mono);font-size:12.5px;background:#fff;
+  border:2px solid rgba(23,19,16,.25);border-radius:9px;padding:8px 10px;margin-top:8px;
+  white-space:pre-wrap;line-height:1.5;
+}
+.tick{
+  display:flex;align-items:center;gap:9px;margin-top:14px;
+  font-family:var(--mono);font-size:13px;cursor:pointer;user-select:none;
+  border-top:2px dotted rgba(23,19,16,.3);padding-top:12px;
+}
+.tick input{appearance:none;width:24px;height:24px;border:var(--line);border-radius:7px;background:#fff;cursor:pointer;flex:none;position:relative}
+.tick input:checked{background:var(--grass)}
+.tick input:checked::after{content:"";position:absolute;left:7px;top:2px;width:7px;height:13px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(43deg)}
+
+.note{
+  border-left:6px solid var(--sky);background:#eaf0ff;
+  padding:12px 16px;border-radius:0 12px 12px 0;margin:14px 0;font-size:15.5px;
+}
+.warn{border-left-color:var(--red);background:#ffeeeb}
+
+table{width:100%;border-collapse:collapse;font-size:15px;margin-top:8px}
+th,td{border:2px solid var(--ink);padding:9px 11px;text-align:left}
+th{background:var(--ink);color:var(--cream);font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+td.mono{font-family:var(--mono);font-size:13.5px}
+
+footer{
+  margin-top:60px;border-top:var(--line);padding-top:22px;
+  display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;
+  font-family:var(--mono);font-size:13px;color:var(--ink-2);
+}
+footer a{color:var(--red);font-weight:600;text-decoration:none;border-bottom:2px solid var(--red)}
+
+@media (max-width:620px){
+  .step{grid-template-columns:1fr;gap:10px}
+  .stepno{width:46px;height:46px;font-size:20px}
+  .bar .pct{min-width:64px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="track"><div class="fill" id="fill"></div></div>
+  <div class="pct" id="pct">0 из 0</div>
+  <button id="reset">сбросить</button>
+</div>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">прогон по кнопкам · без подготовки</div>
+  <h1>Нажми и посмотри,<br><span>работает или нет</span></h1>
+  <p class="lede">Три истории. В каждой ты делаешь несколько кликов и сразу видишь: получилось или не получилось. Ничего знать заранее не надо. Всё, что ты нажмёшь, в конце возвращается назад одной кнопкой.</p>
+  <div class="chips">
+    <span class="chip">≈ 25 минут</span>
+    <span class="chip">logistic-node.odoo.com</span>
+    <span class="chip">приложение «Склад»</span>
+    <span class="chip">стенд остаётся чистым</span>
+  </div>
+</header>
+
+<div class="panel sun">
+  <h3>Три правила игры</h3>
+  <ol>
+    <li><b>Иди сверху вниз.</b> Шаги связаны: пропустишь один — следующий не сработает.</li>
+    <li><b>После каждого шага смотри на зелёную и красную рамку.</b> Зелёная — так и должно быть. Красная — что-то пошло не так, и там же написано что.</li>
+    <li><b>Последний шаг каждой истории — «прибери за собой».</b> Не пропускай его, иначе следующая история начнётся с мусора.</li>
+  </ol>
+</div>
+
+<div class="panel cream">
+  <h3>Словарик на четыре слова</h3>
+  <ul>
+    <li><b>Узел</b> — склад или магазин. Их восемь: два больших склада (WH-A, WH-B) и шесть магазинов (S1…S6).</li>
+    <li><b>Правило пополнения</b> — записка «на этой точке товара должно быть не меньше стольких-то». Когда становится меньше — система заказывает.</li>
+    <li><b>Действие</b> — кнопка <kbd>⚙ Действия</kbd>. Она появляется сверху списка, когда ты поставишь галочку хотя бы у одной строки.</li>
+    <li><b>Плашка</b> — окошко с текстом, которое выпрыгивает справа сверху после нажатия. Это ответ системы. Оно не исчезает само — закрывается крестиком.</li>
+  </ul>
+</div>
+
+<!-- ============ РАЗМИНКА ============ -->
+<section class="act act-0">
+  <div class="act-head">
+    <div class="num">разминка</div>
+    <h2>Найди, где всё лежит</h2>
+    <p>Два клика, чтобы дальше не искать. Если разминка не прошла — дальше идти бессмысленно, скажи об этом.</p>
+  </div>
+
+  <div class="step" data-id="w1">
+    <div class="stepno">1</div>
+    <div>
+      <h4>Открой список узлов</h4>
+      <p class="path">Склад ▸ Конфигурация ▸ <b>Управление складом</b> ▸ Склады</p>
+      <p class="do">Просто открой. Нажимать ничего не надо.</p>
+      <div class="verdicts">
+        <div class="v ok">Видишь <b>8 строк</b>: WH-A Центральный склад, WH-B Резервный склад и шесть магазинов S1…S6.</div>
+        <div class="v no">Строк меньше восьми или список пустой — значит ты в другой компании или под другим пользователем. Дальше не иди.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="w2">
+    <div class="stepno">2</div>
+    <div>
+      <h4>Загляни внутрь узла</h4>
+      <p class="path">Нажми на строку <b>WH-A Центральный склад</b></p>
+      <p class="do">Открылась карточка. Найди глазами четыре поля: <b>Состояние узла</b>, <b>Резервный узел</b>, <b>Приоритет источников</b>, <b>Журнал решений</b>.</p>
+      <div class="verdicts">
+        <div class="v ok">Все четыре поля на месте. «Состояние узла» = <b>Доступен</b>. «Резервный узел» = <b>WH-B Резервный склад</b>. «Журнал решений» пустой.</div>
+        <div class="v no">Полей нет вообще — надстройка не видна в форме, и все три истории ниже не получится проверить глазами.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="w3">
+    <div class="stepno">3</div>
+    <div>
+      <h4>Открой список правил пополнения</h4>
+      <p class="path">Склад ▸ Операции ▸ <b>Снабжение</b> ▸ Пополнение запасов</p>
+      <p class="do">Открой и оставь эту вкладку — она понадобится в третьей истории.</p>
+      <div class="verdicts">
+        <div class="v ok">Длинный список правил. У каждого есть колонка <b>Маршрут</b> — там написано, откуда точка возит товар.</div>
+        <div class="v no">Списка нет или колонки «Маршрут» не видно — включи её через значок настройки колонок справа сверху таблицы.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ИСТОРИЯ 1 ============ -->
+<section class="act act-1">
+  <div class="act-head">
+    <div class="num">история первая</div>
+    <h2>Большой склад сломался</h2>
+    <p>Представь: WH-A сгорел, затопило, отключили свет. Шестьдесят точек возят товар именно оттуда. Нужно одним движением перевести всю сеть на запасной склад WH-B — и так же одним движением вернуть обратно.</p>
+  </div>
+
+  <div class="step" data-id="a1">
+    <div class="stepno">1</div>
+    <div>
+      <h4>Выбери сломавшийся склад</h4>
+      <p class="path">Склад ▸ Конфигурация ▸ Управление складом ▸ Склады</p>
+      <p class="do">Поставь <b>галочку слева</b> от строки «WH-A Центральный склад». Только у неё одной.</p>
+      <div class="verdicts">
+        <div class="v ok">Строка подсветилась, сверху появилась кнопка <b>⚙ Действия</b> и надпись «Выбрано: 1».</div>
+        <div class="v no">Вместо галочки открылась карточка — ты попал по названию, а не по квадратику слева. Вернись назад стрелкой.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="a2">
+    <div class="stepno">2</div>
+    <div>
+      <h4>Нажми кнопку выключения</h4>
+      <p class="path"><b>⚙ Действия</b> ▸ Вывести узел из сети (failover)</p>
+      <p class="do">Это главный клик всей истории. Жми один раз и жди 2–3 секунды.</p>
+      <div class="verdicts">
+        <div class="v ok">Справа выпрыгнула жёлтая плашка <b>«Узел выведен из сети»</b>, и в ней написано примерно так:
+          <span class="quote">Узел WHA выведен, нагрузка переведена на WHB.
+Переключено правил: 60 из 60.
+Приглушено собственных правил узла: 20.
+Снято заявок на этот узел: 0.
+
+ЧТО ОСТАЛОСЬ НА УЗЛЕ (кнопка это НЕ трогает):
+· товара на остатке: 5075.0, из них зарезервировано: …
+· открытых документов: 13</span>
+          Главное, на что смотреть: <b>60 из 60</b>. Ни одна точка не осталась без источника.</div>
+        <div class="v no">Красное окно «У узла … не задан резервный узел» — ты выбрал магазин, а не WH-A. Сними галочку и начни с первого шага.</div>
+        <div class="v no">Написано «Переключено правил: 0 из 60» или «Нет маршрута для: …» — часть сети без запасного пути. Это дефект, запиши коды точек из плашки.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="a3">
+    <div class="stepno">3</div>
+    <div>
+      <h4>Проверь глазами, что узел правда выключен</h4>
+      <p class="path">Нажми на строку <b>WH-A Центральный склад</b></p>
+      <p class="do">Смотри на два поля: <b>Состояние узла</b> и <b>Журнал решений</b>.</p>
+      <div class="verdicts">
+        <div class="v ok">«Состояние узла» = <b>Выведен</b>. В «Журнале решений» появилась одна новая строка с сегодняшней датой и словами <b>ВЫВОД УЗЛА</b>.
+          <span class="quote">[2026-09-16 09:14] ВЫВОД УЗЛА · -> WHB · правил 60/60 · приглушено 20 · остаток 5075.0 (резерв …) · документов 13</span></div>
+        <div class="v no">Состояние осталось «Доступен» — плашка соврала, кнопка ничего не записала. Это дефект.</div>
+        <div class="v no">Журнал пустой — история решений не пишется. Дефект помельче, но записать стоит.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="a4">
+    <div class="stepno">4</div>
+    <div>
+      <h4>Проверь, что магазины и правда смотрят на другой склад</h4>
+      <p class="path">Склад ▸ Операции ▸ Снабжение ▸ Пополнение запасов</p>
+      <p class="do">Найди любую строку магазина S1 и посмотри колонку <b>Маршрут</b>.</p>
+      <div class="verdicts">
+        <div class="v ok">В маршруте написано <b>«…Поставка товара от WH-B Резервный склад»</b>. Было — от WH-A. Вот это и есть переключение сети.</div>
+        <div class="v no">Маршрут по-прежнему «от WH-A» — переключение не доехало до правил, хотя плашка сказала «60 из 60». Дефект, и серьёзный.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="a5">
+    <div class="stepno">5</div>
+    <div>
+      <h4>Прибери за собой: включи узел обратно</h4>
+      <p class="path">Склады ▸ галочка у <b>WH-A</b> ▸ <b>⚙ Действия</b> ▸ Вернуть узел в сеть</p>
+      <p class="do">Обязательный шаг. Без него вторая и третья истории начнутся не с того места.</p>
+      <div class="verdicts">
+        <div class="v ok">Зелёная плашка <b>«Узел возвращён в сеть»</b>:
+          <span class="quote">Узел WHA снова в строю.
+Восстановлено правил по запомненным маршрутам: 60.
+Возвращено в авто собственных правил: 20.
+Переадресованных документов нет.</span>
+          Проверь ещё раз карточку WH-A: «Состояние узла» снова <b>Доступен</b>, а у S1 маршрут снова «от WH-A».</div>
+        <div class="v no">«Восстановлено правил: 0» — система забыла, куда возвращать. Сеть останется на WH-B. Это дефект; скажи об этом, дальше не иди.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ИСТОРИЯ 2 ============ -->
+<section class="act act-2">
+  <div class="act-head">
+    <div class="num">история вторая</div>
+    <h2>А куда девать бумаги?</h2>
+    <p>Узел выключили — но на нём висели тринадцать уже выписанных документов: кому-то отгрузить, что-то принять. Товар физически поедет через другой склад. Проверяем, переезжают ли бумаги и не теряют ли при этом свой номер.</p>
+  </div>
+
+  <div class="note warn"><b>Сначала повтори шаги 1–2 первой истории</b> — выключи WH-A. На включённом узле эта кнопка честно скажет, что переадресовывать нечего, и истории не получится.</div>
+
+  <div class="step" data-id="b1">
+    <div class="stepno">1</div>
+    <div>
+      <h4>Запиши, что было до</h4>
+      <p class="path">Склад ▸ Операции ▸ Трансферы ▸ <b>Доставка</b></p>
+      <p class="do">Найди любой документ, у которого номер начинается на <b>WHA/</b>. Перепиши его номер на бумажку — например <code>WHA/OUT/00007</code>. Он понадобится через два шага.</p>
+      <div class="verdicts">
+        <div class="v ok">Номер записан. Документ не «Готово» и не «Отменено».</div>
+        <div class="v no">Ни одного документа с WHA/ — значит стенд уже прибрали раньше, и проверять нечего.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="b2">
+    <div class="stepno">2</div>
+    <div>
+      <h4>Переселяй бумаги</h4>
+      <p class="path">Склады ▸ галочка у <b>WH-A</b> ▸ <b>⚙ Действия</b> ▸ Переадресовать открытые документы на резерв</p>
+      <p class="do">Один клик. Работает дольше остальных — до 10 секунд. Не жми дважды.</p>
+      <div class="verdicts">
+        <div class="v ok">Плашка <b>«Переадресация документов»</b>, и в ней <b>13 строк</b> — по строке на документ:
+          <span class="quote">WHA/OUT/00007 · номер сохранён · отгрузка теперь с WHB · WH-A: Доставка -> WH-B: Доставка · резерв: assigned</span>
+          Три вещи в каждой строке: <b>номер сохранён</b>, куда переехало, и <b>assigned</b> — товар на новом складе нашёлся и зарезервирован.</div>
+        <div class="v no">Где-то вместо «assigned» написано <b>confirmed</b> — документ переехал, но товара на WH-B под него не хватило. Это не поломка кнопки, это нехватка остатка; отметь строку.</div>
+        <div class="v no">Строка «…нет типа операции …, пропущено» — у запасного склада не настроен такой же тип операции. Дефект настройки.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="b3">
+    <div class="stepno">3</div>
+    <div>
+      <h4>Самая важная проверка: номер</h4>
+      <p class="path">Склад ▸ Операции ▸ Трансферы ▸ Доставка ▸ найди номер со своей бумажки</p>
+      <p class="do">Открой документ и посмотри: номер сверху и поле <b>Переадресован с узла</b>.</p>
+      <div class="verdicts">
+        <div class="v ok">Номер <b>ровно тот же</b>, что ты записал. Поле «Переадресован с узла» = <b>WH-A Центральный склад</b>, в «Переадресации» — дата и «WHA -&gt; WHB». Документ живёт на WH-B, но зовут его по-старому — значит на него можно ссылаться, и никто ничего не потеряет.</div>
+        <div class="v no">Документа с таким номером нет, зато есть похожий с номером <b>WHB/OUT/…</b> — при переезде номер перебило. Для бухгалтерии это больно. Дефект.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="b4">
+    <div class="stepno">4</div>
+    <div>
+      <h4>Прибери за собой: верни бумаги домой</h4>
+      <p class="path">Склады ▸ галочка у <b>WH-A</b> ▸ <b>⚙ Действия</b> ▸ Вернуть переадресованные документы</p>
+      <p class="do">Потом — <b>⚙ Действия</b> ▸ <b>Вернуть узел в сеть</b>. Именно в таком порядке.</p>
+      <div class="verdicts">
+        <div class="v ok">Зелёная плашка <b>«Возврат документов»</b>, снова 13 строк, снова «номер сохранён». Открой документ со своей бумажки: поле «Переадресован с узла» опять пустое, номер прежний.
+          <span class="quote">WHA/OUT/00007 · номер сохранён · возвращён с WHB · резерв: assigned</span></div>
+        <div class="v no">«WHA: переадресованных документов нет» — либо ты уже вернул их, либо кнопка не запомнила, что переселяла. Проверь поле «Переадресован с узла» у любого документа.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="note"><b>Что тут проверено на самом деле.</b> Штатная Odoo так не умеет: сменить складу документ она даёт, но документ при этом получает новый номер и теряет связь с прежним. Вся история нужна была ради одной строчки — «номер сохранён».</div>
+</section>
+
+<!-- ============ ИСТОРИЯ 3 ============ -->
+<section class="act act-3">
+  <div class="act-head">
+    <div class="num">история третья</div>
+    <h2>Соседи скидываются</h2>
+    <p>Магазину во Львове срочно нужно 14 кондиционеров. Ни у одного соседа столько нет — у каждого лишних всего по четыре. Штатная система в такой ситуации говорит «донора нет» и останавливается. Смотрим, соберёт ли наша кнопка нужное по кусочкам.</p>
+  </div>
+
+  <div class="note warn"><b>Перед началом убедись:</b> все узлы в состоянии «Доступен», переадресованных документов нет. Если первую и вторую историю ты прибрал — так и есть.</div>
+
+  <div class="step" data-id="c1">
+    <div class="stepno">1</div>
+    <div>
+      <h4>Создай нехватку во Львове</h4>
+      <p class="path">Склад ▸ Операции ▸ Снабжение ▸ Пополнение запасов</p>
+      <p class="do">Найди строку: склад <b>S4 Магазин Львов</b>, товар <b>UNV-01 Кондиціонер 12k BTU</b>. Впиши в неё <b>Мин. количество = 20</b> и <b>Макс. количество = 20</b>. Сохрани (облачко ☁ сверху).</p>
+      <div class="verdicts">
+        <div class="v ok">В колонке <b>К заказу</b> у этой строки появилось <b>14</b>. Это и есть нехватка: есть 6, нужно 20.</div>
+        <div class="v no">В «К заказу» ноль — товар уже едет к S4 по другому документу. Отмени или доставь его и вернись.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="c2">
+    <div class="stepno">2</div>
+    <div>
+      <h4>Разреши соседям делиться</h4>
+      <p class="path">Там же, в списке правил</p>
+      <p class="do">В строках того же товара UNV-01 у магазинов <b>S1, S2, S5, S6</b> поставь <b>Мин. = 2</b> и <b>Макс. = 2</b>. Четыре строки. Сохрани.</p>
+      <div class="verdicts">
+        <div class="v ok">У каждого из четырёх в «К заказу» стоит ноль. У каждого лежит по 6 штук, себе он теперь оставляет 2 — значит лишних ровно <b>4</b>. Четыре соседа по 4 = 16, а нужно 14. Сеть в целом справится, но никто по отдельности — нет.</div>
+        <div class="v no">У кого-то в «К заказу» появилось число — ты поставил минимум больше остатка. Проверь, что везде именно 2 и 2.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="c3">
+    <div class="stepno">3</div>
+    <div>
+      <h4>Нажми «найти доноров»</h4>
+      <p class="path">Поставь галочку у строки <b>S4 / UNV-01</b> ▸ <b>⚙ Действия</b> ▸ Латеральная переброска: найти донора</p>
+      <p class="do">Только у строки S4. Один клик, ждать до 3 секунд.</p>
+      <div class="verdicts">
+        <div class="v ok">Синяя плашка <b>«Латеральная переброска»</b> со словом <b>СПЛИТ</b>:
+          <span class="quote">S4 / UNV-01: СПЛИТ. Потребность 14.0 шт разложена на 4 донор(ов):
+S1 4.0 шт (S1/OUT/00012 резерв assigned + S4/IN/00013, плечо 2 дн);
+S2 4.0 шт (S2/OUT/00013 резерв assigned + S4/IN/00014, плечо 2 дн);
+S5 4.0 шт (S5/OUT/00012 резерв assigned + S4/IN/00015, плечо 2 дн);
+S6 2.0 шт (S6/OUT/00012 резерв assigned + S4/IN/00016, плечо 2 дн)</span>
+          Читай так: <b>4 + 4 + 4 + 2 = 14</b>. Ровно столько, сколько не хватало — ни штукой больше. Последний донор дал только 2, потому что больше уже не требовалось.</div>
+        <div class="v ok">Ниже в плашке — список кандидатов и почему каждый подошёл или нет. Там должно быть <b>«WHA: хаб, исключён»</b> и <b>«WHB: хаб, исключён»</b>: большие склады к соседской складчине не привлекаются, они возят по обычному маршруту.</div>
+        <div class="v no">Написано <b>«донора нет (нужно 14)»</b> — значит кнопка умеет брать только одного донора целиком и сдалась. Именно это и должна была починить надстройка. Дефект.</div>
+        <div class="v no">Есть строка <b>«НЕ ПОКРЫТО: N шт»</b> — сеть физически не смогла набрать всё. Это не поломка: система честно сказала, сколько не хватило. Но если N больше нуля при остатке 16 против 14 — считать дефектом.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="c4">
+    <div class="stepno">4</div>
+    <div>
+      <h4>Убедись, что документы настоящие</h4>
+      <p class="path">Склад ▸ Операции ▸ Трансферы ▸ <b>Внутренний</b> (или «Все трансферы»)</p>
+      <p class="do">Отфильтруй по слову <b>латерал-сплит</b> — оно записано в поле «Источник» у всех восьми документов.</p>
+      <div class="verdicts">
+        <div class="v ok"><b>8 документов</b>: по два на каждого донора. Половина — отгрузки со статусом <b>Готово к обработке</b>, половина — приёмки со статусом <b>Ожидание другой операции</b>. Так и должно быть: приёмка ждёт, пока уедет отгрузка.</div>
+        <div class="v ok">Открой любую отгрузку: в строке товара количество зарезервировано, а не просто вписано. Значит у донора эти штуки уже заняты и второй раз их никто не пообещает.</div>
+        <div class="v no">Документов меньше восьми или все в статусе «Черновик» — переброска нарисована, но не запущена. Дефект.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="c5">
+    <div class="stepno">5</div>
+    <div>
+      <h4>Проверь, что заказ не удвоился</h4>
+      <p class="path">Вернись в Пополнение запасов, строка <b>S4 / UNV-01</b></p>
+      <p class="do">Посмотри колонку <b>К заказу</b> и поле <b>Последнее решение</b> (может понадобиться включить колонку).</p>
+      <div class="verdicts">
+        <div class="v ok">В «К заказу» теперь <b>0</b>. Нехватка закрыта едущим товаром — система не закажет те же 14 штук ещё раз откуда-то со стороны. Это главная проверка шага.</div>
+        <div class="v ok">В «Последнем решении» человеческим языком написано, что произошло:
+          <span class="quote">2026-09-16 09:40 латерал-сплит: 14.0 из 14.0 шт с 4 узлов (S1 4.0, S2 4.0, S5 4.0, S6 2.0)</span></div>
+        <div class="v no">В «К заказу» всё ещё 14 — система не видит едущий товар и закажет его повторно. Это двойной заказ, серьёзный дефект.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="c6">
+    <div class="stepno">6</div>
+    <div>
+      <h4>Прибери за собой: убери восемь документов</h4>
+      <p class="path">Пополнение запасов ▸ галочка у <b>S4 / UNV-01</b> ▸ <b>⚙ Действия</b> ▸ Убрать документы латерал-сплита</p>
+      <p class="do">Одна кнопка вместо восьми ручных отмен.</p>
+      <div class="verdicts">
+        <div class="v ok">Зелёная плашка <b>«Уборка после прогона»</b>:
+          <span class="quote">Удалено документов латерал-сплита: 8
+S1/OUT/00012, S4/IN/00013, S2/OUT/00013, S4/IN/00014, S5/OUT/00012, S4/IN/00015, S6/OUT/00012, S4/IN/00016</span></div>
+        <div class="v no">«Убирать нечего» при живых восьми документах — кнопка не находит их по метке. Тогда удаляй вручную: каждый документ → «Отменить» → ⚙ Действия → Удалить.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+
+  <div class="step" data-id="c7">
+    <div class="stepno">7</div>
+    <div>
+      <h4>Прибери за собой: верни числа в правилах</h4>
+      <p class="path">Пополнение запасов</p>
+      <p class="do">Верни те же пять строк товара UNV-01 к исходным числам — они в табличке ниже.</p>
+      <div class="verdicts">
+        <div class="v ok">Ни у одной строки в «К заказу» не осталось числа больше нуля. Стенд в том же виде, в каком ты его взял.</div>
+        <div class="v no">У кого-то осталась нехватка — сверь числа с табличкой ещё раз.</div>
+      </div>
+      <label class="tick"><input type="checkbox"> сделал</label>
+    </div>
+  </div>
+</section>
+
+<div class="panel">
+  <h3>Стенд должен остаться таким</h3>
+  <p style="margin-top:0;color:var(--ink-2)">Товар <b>UNV-01 Кондиціонер 12k BTU</b>, у всех шести магазинов на остатке по 6 штук.</p>
+  <table>
+    <thead><tr><th>Точка</th><th>Мин.</th><th>Макс.</th><th>К заказу</th></tr></thead>
+    <tbody>
+      <tr><td>S1 Магазин Подол</td><td class="mono">4</td><td class="mono">8</td><td class="mono">0</td></tr>
+      <tr><td>S2 Магазин Оболонь</td><td class="mono">4</td><td class="mono">8</td><td class="mono">0</td></tr>
+      <tr><td>S4 Магазин Львов</td><td class="mono">4</td><td class="mono">8</td><td class="mono">0</td></tr>
+      <tr><td>S5 Магазин Одесса</td><td class="mono">20</td><td class="mono">30</td><td class="mono">0</td></tr>
+      <tr><td>S6 Магазин Днепр</td><td class="mono">4</td><td class="mono">8</td><td class="mono">0</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-bottom:0">Плюс: все восемь узлов в состоянии <b>Доступен</b>, поле «Переадресован с узла» ни у одного документа не заполнено, документов со словом «латерал-сплит» ноль.</p>
+</div>
+
+<div class="panel cream">
+  <h3>Если что-то пошло не так</h3>
+  <ul>
+    <li><b>Кнопки ⚙ Действия нет.</b> Ты не поставил ни одной галочки. Она появляется только когда выбрана хотя бы одна строка.</li>
+    <li><b>Нужного действия нет в списке.</b> Действия привязаны к типу записи: «вывести узел», «вернуть узел», «переадресовать», «вернуть документы» — только в списке <b>Складов</b>. «Найти донора», «отменить латерал», «убрать документы» — только в списке <b>Правил пополнения</b>.</li>
+    <li><b>Плашка не появилась.</b> Проверь правый верхний угол — она могла выпрыгнуть и уехать за край. Обнови страницу и посмотри результат по полям: состояние узла, «Последнее решение», список документов. Поля не врут.</li>
+    <li><b>Красное окно с длинным текстом про Python.</b> Это настоящая ошибка в коде действия. Скопируй последние три строки — по ним чинят.</li>
+    <li><b>Сеть застряла на WH-B.</b> Склады ▸ галочка у WH-A ▸ ⚙ Действия ▸ «Вернуть узел в сеть». Эта кнопка работает, даже если её нажать дважды подряд.</li>
+    <li><b>Ночью что-то изменилось само.</b> Так и задумано: в 02:00 по серверу отрабатывает ночной пересчёт источников. Числа в «К заказу» и «Последнем решении» могут отличаться от вчерашних.</li>
+  </ul>
+</div>
+
+<div class="panel sun">
+  <h3>Что ты доказал, если всё зелёное</h3>
+  <ol>
+    <li><b>Узел выключается одной кнопкой</b>, и вся сеть — шестьдесят правил — переезжает на запасной. Вручную это 70–115 кликов по шести разным меню.</li>
+    <li><b>Документы переезжают вместе с узлом и сохраняют свои номера.</b> Штатная Odoo номер перебивает.</li>
+    <li><b>Нехватку можно собрать с нескольких соседей сразу</b>, настоящими документами, с резервом у каждого донора и без двойного заказа. Штатная логика берёт одного донора и, если он не тянет, сдаётся.</li>
+  </ol>
+</div>
+
+<footer>
+  <span>logistic-node.odoo.com · saas~19.4 · компания logistic-node</span>
+  <span><a href="index.html">Отчёт по стенду</a> · <a href="solution.html">Схема решения</a> · <a href="testplan.html">Прогонный лист</a></span>
+  <span>Прогон по кнопкам — 16.09.2026</span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var KEY = 'ln-walkthrough-v1';
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e){ saved = {}; }
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step'));
+  var fill = document.getElementById('fill');
+  var pct = document.getElementById('pct');
+
+  function paint(){
+    var done = 0;
+    steps.forEach(function(s){
+      var cb = s.querySelector('input');
+      if (cb.checked){ done++; s.classList.add('done'); }
+      else { s.classList.remove('done'); }
+    });
+    var p = steps.length ? Math.round(done / steps.length * 100) : 0;
+    fill.style.width = p + '%';
+    pct.textContent = done + ' из ' + steps.length;
+    if (done === steps.length && steps.length){
+      pct.textContent = 'всё пройдено';
+      fill.style.background = 'var(--sun)';
+    } else {
+      fill.style.background = 'var(--grass)';
+    }
+  }
+
+  steps.forEach(function(s){
+    var id = s.getAttribute('data-id');
+    var cb = s.querySelector('input');
+    cb.checked = !!saved[id];
+    cb.addEventListener('change', function(){
+      saved[id] = cb.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch(e){}
+      paint();
+    });
+  });
+
+  document.getElementById('reset').addEventListener('click', function(){
+    saved = {};
+    try { localStorage.removeItem(KEY); } catch(e){}
+    steps.forEach(function(s){ s.querySelector('input').checked = false; });
+    paint();
+  });
+
+  paint();
+})();
+</script>
+</body>
+</html>
